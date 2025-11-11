@@ -1,0 +1,49 @@
+# RevitAI Firm Configuration - Example
+# Copy this file to firm_defaults.yaml and customize for your firm
+
+firm_name: "Your Firm Name"
+language: "he"  # Primary language: "he" (Hebrew) or "en" (English)
+
+# Dimension Settings
+dimension_defaults:
+  offset_mm: 200                    # Distance from wall to dimension line (millimeters)
+  style: "Continuous"               # Dimension style: "Continuous" or "Aligned"
+  type: "Linear"                    # Dimension type from Revit project
+
+# Tag Settings
+tag_defaults:
+  door_family: "Door Tag"           # Door tag family name
+  window_family: "Window Tag"       # Window tag family name
+  room_family: "Room Tag"           # Room tag family name
+  placement_offset: 100             # Tag offset from element (millimeters)
+
+# Claude API Settings
+api_settings:
+  model: "claude-sonnet-4"          # Claude model: "claude-sonnet-4" or "claude-opus-4"
+  timeout_seconds: 10               # API request timeout
+  max_retries: 3                    # Number of retries on failure
+  temperature: 0.0                  # Response determinism (0.0 = deterministic, 1.0 = creative)
+
+# Logging Settings
+logging:
+  log_level: "INFO"                 # Log level: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+  max_log_size_mb: 10               # Maximum log file size before rotation
+  backup_count: 5                   # Number of backup log files to keep
+
+# Safety Settings
+safety:
+  max_elements_per_operation: 500   # Maximum elements to process in single operation
+  require_confirmation: true        # Always require user confirmation before executing
+  allow_preview_skip: false         # Allow skipping preview (NOT RECOMMENDED)
+
+# Performance Settings
+performance:
+  batch_size: 50                    # Number of elements to process per batch
+  preview_timeout_seconds: 5        # Maximum time to generate preview graphics
+
+# UI Settings
+ui:
+  rtl_support: true                 # Enable right-to-left text for Hebrew
+  font_size: 12                     # Dialog font size
+  dialog_width: 600                 # Dialog width in pixels
+  dialog_height: 400                # Dialog height in pixels

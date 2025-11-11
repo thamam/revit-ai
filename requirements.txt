@@ -1,0 +1,21 @@
+# RevitAI Production Dependencies
+# Install with: pip install -r requirements.txt
+
+# Claude API Integration
+# Version range allows patches but prevents breaking changes
+anthropic>=0.72.0,<1.0.0
+
+# HTTP Client (fallback)
+requests>=2.31.0,<3.0.0
+
+# Configuration Management
+pyyaml>=6.0.1,<7.0.0
+
+# Windows Credential Manager (API key storage)
+keyring>=24.0.0,<25.0.0
+
+# Development Dependencies (optional, install with: pip install -r requirements-dev.txt)
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# black>=23.0.0
+# pylint>=3.0.0

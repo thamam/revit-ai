@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Revit
+*.rvt.bak
+*.rfa.bak
+*.rte.bak
+*.rft.bak
+*_backup/
+
+# pyRevit
+*.pyc.bak
+
+# Logs
+*.log
+logs/
+
+# Configuration (contains sensitive data)
+.extensions/RevitAI.extension/config/firm_defaults.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+~$*

@@ -84,15 +84,21 @@ def view_config_file(config_path: str):
     """Open configuration file location"""
     import subprocess
 
-    # Get directory
-    config_dir = os.path.dirname(config_path)
+    # Get directory and validate it exists
+    config_dir = os.path.dirname(os.path.abspath(config_path))
+
+    # Validate path is within expected directories (security check)
+    if not os.path.exists(config_dir):
+        logger.warning(f"Config directory does not exist: {config_dir}")
+        TaskDialog.Show("Error", "Configuration directory not found")
+        return
 
     try:
-        # Open in Windows Explorer
-        subprocess.Popen(f'explorer "{config_dir}"')
+        # Open in Windows Explorer - use list args for security
+        subprocess.Popen(['explorer', config_dir])
         logger.info(f"Opened config directory: {config_dir}")
     except Exception as e:
-        logger.error(f"Failed to open config directory: {e}")
+        logger.exception(f"Failed to open config directory: {e}")
         TaskDialog.Show("Error", f"Failed to open folder:\n{e}")
 
 
@@ -101,14 +107,20 @@ def view_logs():
     import subprocess
     from logger import get_log_directory
 
-    log_dir = get_log_directory()
+    log_dir = os.path.abspath(get_log_directory())
+
+    # Validate log directory exists (security check)
+    if not os.path.exists(log_dir):
+        logger.warning(f"Log directory does not exist: {log_dir}")
+        TaskDialog.Show("Error", "Log directory not found")
+        return
 
     try:
-        # Open in Windows Explorer
-        subprocess.Popen(f'explorer "{log_dir}"')
+        # Open in Windows Explorer - use list args for security
+        subprocess.Popen(['explorer', log_dir])
         logger.info(f"Opened log directory: {log_dir}")
     except Exception as e:
-        logger.error(f"Failed to open log directory: {e}")
+        logger.exception(f"Failed to open log directory: {e}")
         TaskDialog.Show("Error", f"Failed to open folder:\n{e}")
 
 
@@ -142,13 +154,13 @@ def test_api_connection():
 
     except ConfigurationError as e:
         TaskDialog.Show("Configuration Error", str(e))
-        logger.error(f"API connection test error: {e}")
+        logger.exception(f"API connection test error: {e}")
     except APIError as e:
         TaskDialog.Show("API Error", str(e))
-        logger.error(f"API connection test error: {e}")
+        logger.exception(f"API connection test error: {e}")
     except Exception as e:
         TaskDialog.Show("Error", f"Unexpected error:\n{e}")
-        logger.error(f"API connection test error: {e}", exc_info=True)
+        logger.exception(f"API connection test error: {e}")
 
 
 def main():

@@ -61,7 +61,7 @@ class ClaudeClient:
         try:
             self.client = Anthropic(api_key=api_key)
         except Exception as e:
-            raise APIError(f"Failed to initialize Anthropic client: {e}")
+            raise APIError(f"Failed to initialize Anthropic client: {e}") from e
 
         # Load config
         self.config = get_config_manager()
@@ -128,9 +128,9 @@ Return JSON action schema as specified in the system prompt."""
             return action
 
         except AnthropicError as e:
-            raise APIError(f"Claude API error: {e}")
+            raise APIError(f"Claude API error: {e}") from e
         except Exception as e:
-            raise APIError(f"Unexpected error calling Claude API: {e}")
+            raise APIError(f"Unexpected error calling Claude API: {e}") from e
 
     def _get_system_prompt(self) -> str:
         """Get system prompt that defines Claude's behavior"""
@@ -238,7 +238,7 @@ Ambiguous: "Add dimensions"
             action = json.loads(text)
             return action
         except json.JSONDecodeError as e:
-            raise APIError(f"Failed to parse JSON response: {e}\nResponse: {response_text}")
+            raise APIError(f"Failed to parse JSON response: {e}\nResponse: {response_text}") from e
 
     def test_connection(self) -> bool:
         """

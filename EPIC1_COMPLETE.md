@@ -1,6 +1,6 @@
 # ✅ EPIC 1 COMPLETE - Foundation & Core Infrastructure
 
-**Project:** RevitAI - AI Co-pilot for Revit
+**Project:** RevitAI - AI Copilot for Revit
 **Date Completed:** November 9, 2025
 **Status:** Ready for Revit Integration Testing
 
@@ -183,7 +183,7 @@
 - `Settings.pushbutton/script.py` (154 lines) - Settings dialog
 
 **Key Features:**
-- Main co-pilot dialog
+- Main Copilot dialog
 - Settings configuration dialog
 - API connection test
 - System information display

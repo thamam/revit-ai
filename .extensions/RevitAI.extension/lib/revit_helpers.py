@@ -43,7 +43,7 @@ def get_all_levels(doc) -> List:
         levels = collector.OfClass(Level).ToElements()
         return list(levels)
     except Exception as e:
-        raise RevitAPIError(f"Failed to get levels: {e}")
+        raise RevitAPIError(f"Failed to get levels: {e}") from e
 
 
 def get_all_rooms(doc, level: Optional[Level] = None) -> List:
@@ -71,7 +71,7 @@ def get_all_rooms(doc, level: Optional[Level] = None) -> List:
 
         return list(rooms)
     except Exception as e:
-        raise RevitAPIError(f"Failed to get rooms: {e}")
+        raise RevitAPIError(f"Failed to get rooms: {e}") from e
 
 
 def get_current_view(uidoc) -> Optional[View]:
@@ -90,7 +90,7 @@ def get_current_view(uidoc) -> Optional[View]:
     try:
         return uidoc.ActiveView
     except Exception as e:
-        raise RevitAPIError(f"Failed to get current view: {e}")
+        raise RevitAPIError(f"Failed to get current view: {e}") from e
 
 
 def get_selected_elements(uidoc) -> List:
@@ -115,7 +115,7 @@ def get_selected_elements(uidoc) -> List:
         return [e for e in elements if e is not None]
 
     except Exception as e:
-        raise RevitAPIError(f"Failed to get selected elements: {e}")
+        raise RevitAPIError(f"Failed to get selected elements: {e}") from e
 
 
 def show_message_dialog(title: str, message: str) -> None:
@@ -229,7 +229,7 @@ def build_revit_context(uidoc) -> Dict[str, Any]:
         return context
 
     except Exception as e:
-        raise RevitAPIError(f"Failed to build Revit context: {e}")
+        raise RevitAPIError(f"Failed to build Revit context: {e}") from e
 
 
 def test_revit_helpers():

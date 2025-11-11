@@ -192,8 +192,8 @@ Do you want to proceed?"""
             return confirmed
 
         except Exception as e:
-            logger.error(f"Failed to show preview dialog: {e}")
-            raise PreviewError(f"Preview dialog failed: {e}")
+            logger.exception(f"Failed to show preview dialog: {e}")
+            raise PreviewError(f"Preview dialog failed: {e}") from e
 
     def clear_preview(self):
         """

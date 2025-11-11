@@ -92,12 +92,12 @@ Run: `/bmad:bmm:workflows:dev-story` to implement Epic 2
         show_error_dialog("Error", f"Failed to show dialog: {e}")
 
 
-def test_claude_connection(uidoc):
+def test_claude_connection(_uidoc=None):
     """
     Test connection to Claude API
 
     Args:
-        uidoc: Revit UIDocument
+        _uidoc: Revit UIDocument (unused, for future use)
     """
     with OperationLogger("test_claude_connection") as op:
         op.start()

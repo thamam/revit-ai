@@ -73,10 +73,10 @@ class RevitOperationRequest:
             if status == 'success':
                 return value
             else:
-                raise RevitAPIError(f"Revit operation failed: {value}")
+                raise RevitAPIError(f"Revit operation failed: {value}") from None
 
         except Empty:
-            raise TimeoutError(f"Revit operation timed out after {timeout} seconds")
+            raise TimeoutError(f"Revit operation timed out after {timeout} seconds") from None
 
 
 class RevitExternalEventHandler(IExternalEventHandler):
@@ -211,7 +211,10 @@ class RevitEventManager:
         """
         if not REVIT_API_AVAILABLE or self.external_event is None:
             # Development mode - execute directly (no threading)
-            print(f"Mock execution: {operation.__name__}")
+            logger.warning(
+                f"DEVELOPMENT MODE: Skipping Revit operation '{operation.__name__}' - "
+                f"Revit API not available. This may cause unexpected behavior."
+            )
             return None
 
         # Queue the operation
@@ -301,7 +304,7 @@ def example_create_text_note(uidoc, text: str, location):
 
         except Exception as e:
             t.RollBack()
-            raise RevitAPIError(f"Failed to create text note: {e}")
+            raise RevitAPIError(f"Failed to create text note: {e}") from e
 
 
 def test_external_event():

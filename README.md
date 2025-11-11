@@ -120,7 +120,7 @@ Expected output:
 
 Once Epic 2 is complete, you'll be able to:
 
-```
+```text
 Hebrew Example:
 "תוסיף מידות פנימיות לכל החדרים בקומה 1"
 (Add internal dimensions to all rooms on Level 1)
@@ -140,7 +140,7 @@ The AI will:
 
 ### Project Structure
 
-```
+```text
 revit-ai/
 ├── .extensions/
 │   └── RevitAI.extension/          # pyRevit extension
@@ -246,7 +246,7 @@ See [docs/architecture.md](docs/architecture.md) for complete architectural deci
 - Schedule generation
 - View/sheet management
 - Quality control checks
-- Full Revit co-pilot capabilities
+- Full Revit Copilot capabilities
 
 ## Contributing
 

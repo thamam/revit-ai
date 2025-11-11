@@ -18,7 +18,11 @@ except ImportError:
     REVIT_API_AVAILABLE = False
     print("Warning: Revit API not available (development mode)")
 
+# RevitAI imports
+from logger import get_logger
 from exceptions import RevitAPIError
+
+logger = get_logger(__name__)
 
 
 class RevitOperationRequest:

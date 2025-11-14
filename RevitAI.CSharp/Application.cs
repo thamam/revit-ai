@@ -21,11 +21,42 @@ namespace RevitAI
         {
             try
             {
-                // Create RevitAI ribbon tab
-                application.CreateRibbonTab("RevitAI");
+                // Create RevitAI ribbon tab (only if it doesn't exist)
+                string tabName = "RevitAI";
+                string panelName = "AI Copilot";
 
-                // Create ribbon panel
-                RibbonPanel panel = application.CreateRibbonPanel("RevitAI", "AI Copilot");
+                try
+                {
+                    application.CreateRibbonTab(tabName);
+                }
+                catch (Autodesk.Revit.Exceptions.ArgumentException)
+                {
+                    // Tab already exists, which is fine
+                }
+
+                // Create ribbon panel (only if it doesn't exist)
+                RibbonPanel panel;
+                try
+                {
+                    panel = application.CreateRibbonPanel(tabName, panelName);
+                }
+                catch (Autodesk.Revit.Exceptions.ArgumentException)
+                {
+                    // Panel already exists, get existing one
+                    panel = null;
+                    foreach (RibbonPanel p in application.GetRibbonPanels(tabName))
+                    {
+                        if (p.Name == panelName)
+                        {
+                            panel = p;
+                            break;
+                        }
+                    }
+                    if (panel == null)
+                    {
+                        throw new Exception($"Panel '{panelName}' exists but could not be retrieved");
+                    }
+                }
 
                 // Add Copilot button
                 AddCopilotButton(panel);

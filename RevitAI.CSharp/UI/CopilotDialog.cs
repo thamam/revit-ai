@@ -12,8 +12,8 @@ namespace RevitAI.UI
     public class CopilotDialog : Window
     {
         private readonly UIDocument _uiDoc;
-        private TextBox _promptTextBox;
-        private TextBlock _statusTextBlock;
+        private System.Windows.Controls.TextBox _promptTextBox;
+        private System.Windows.Controls.TextBlock _statusTextBlock;
 
         public CopilotDialog(UIDocument uiDoc)
         {
@@ -54,7 +54,7 @@ namespace RevitAI.UI
             Grid.SetRow(_statusTextBlock, 0);
 
             // Prompt textbox
-            _promptTextBox = new TextBox
+            _promptTextBox = new System.Windows.Controls.TextBox
             {
                 Height = 100,
                 TextWrapping = TextWrapping.Wrap,

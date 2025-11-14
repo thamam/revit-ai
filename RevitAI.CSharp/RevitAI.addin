@@ -2,7 +2,7 @@
 <RevitAddIns>
   <AddIn Type="Application">
     <Name>RevitAI</Name>
-    <Assembly>RevitAI.CSharp\RevitAI.dll</Assembly>
+    <Assembly>RevitAI\RevitAI.dll</Assembly>
     <FullClassName>RevitAI.Application</FullClassName>
     <ClientId>A5E8C0D1-9B2F-4E3A-8F7D-6C5B4A3E2D1C</ClientId>
     <VendorId>RVIA</VendorId>

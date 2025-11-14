@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
 using Anthropic.SDK;
+using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
 using RevitAI.Models;
 
@@ -56,27 +59,28 @@ Current Revit Context:
 Parse this command and return a JSON action following the schema defined in the system prompt.";
 
             // Call Claude API
-            var messages = new[]
+            var messages = new List<Message>
             {
                 new Message
                 {
-                    Role = "user",
+                    Role = RoleType.User,
                     Content = userMessage
                 }
             };
 
-            var request = new MessageRequest
+            var parameters = new MessageParameters
             {
                 Model = _model,
                 MaxTokens = _maxTokens,
-                System = systemPrompt,
-                Messages = messages
+                SystemMessage = systemPrompt,
+                Messages = messages,
+                Stream = false
             };
 
-            var response = await _client.Messages.CreateAsync(request);
+            var response = await _client.Messages.GetClaudeMessageAsync(parameters);
 
             // Extract JSON from response
-            string responseText = response.Content[0].Text;
+            string responseText = response.Content[0].Text ?? string.Empty;
             string jsonText = ExtractJsonFromResponse(responseText);
 
             // Parse into RevitAction
@@ -92,23 +96,24 @@ Parse this command and return a JSON action following the schema defined in the 
         {
             try
             {
-                var messages = new[]
+                var messages = new List<Message>
                 {
                     new Message
                     {
-                        Role = "user",
+                        Role = RoleType.User,
                         Content = "Hello"
                     }
                 };
 
-                var request = new MessageRequest
+                var parameters = new MessageParameters
                 {
                     Model = _model,
                     MaxTokens = 10,
-                    Messages = messages
+                    Messages = messages,
+                    Stream = false
                 };
 
-                var response = await _client.Messages.CreateAsync(request);
+                var response = await _client.Messages.GetClaudeMessageAsync(parameters);
                 return response != null && response.Content != null && response.Content.Count > 0;
             }
             catch

@@ -178,30 +178,33 @@ namespace RevitAI.UI
         {
             try
             {
-                _statusTextBlock.Text = "Testing ExternalEvent handler...\n\n" +
-                    "This tests thread-safe Revit API access from background thread.";
+                // Close the dialog BEFORE awaiting ExternalEvent
+                // This allows Revit's main thread to become idle and process the ExternalEvent callback
+                Close();
 
                 // Call from background thread (async) - ExternalEvent will marshal to Revit main thread
                 var response = await Services.RevitEventHandler.TestEventHandlerAsync();
 
+                // Show result in TaskDialog (since main dialog is closed)
                 if (response.Success)
                 {
-                    _statusTextBlock.Text = "✓ ExternalEvent test successful!\n\n" +
+                    TaskDialog.Show("ExternalEvent Test - SUCCESS",
+                        "✓ ExternalEvent test successful!\n\n" +
                         $"Message: {response.Message}\n\n" +
                         "Story 1.3 (ExternalEvent Pattern) is working correctly.\n" +
-                        "Background threads can now safely call Revit API operations.";
+                        "Background threads can now safely call Revit API operations.");
                 }
                 else
                 {
-                    _statusTextBlock.Text = "✗ ExternalEvent test failed.\n\n" +
+                    TaskDialog.Show("ExternalEvent Test - FAILED",
+                        "✗ ExternalEvent test failed.\n\n" +
                         $"Error: {response.Message}\n\n" +
-                        $"Details: {response.ErrorDetails}";
+                        $"Details: {response.ErrorDetails}");
                 }
             }
             catch (Exception ex)
             {
-                TaskDialog.Show("Error", $"ExternalEvent test failed:\n{ex.Message}");
-                _statusTextBlock.Text = $"Error: {ex.Message}\n\n{ex.StackTrace}";
+                TaskDialog.Show("Error", $"ExternalEvent test failed:\n{ex.Message}\n\n{ex.StackTrace}");
             }
         }
 

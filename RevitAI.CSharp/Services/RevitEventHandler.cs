@@ -76,31 +76,51 @@ namespace RevitAI.Services
         /// </summary>
         public void Execute(UIApplication app)
         {
-            var logger = LoggingService.Instance;
-
-            while (_requestQueue.TryDequeue(out RevitRequest request))
+            try
             {
+                var logger = LoggingService.Instance;
+                logger.Info($"Execute() called by Revit, queue count: {_requestQueue.Count}", "EXTERNAL_EVENT");
+
+                while (_requestQueue.TryDequeue(out RevitRequest request))
+                {
+                    try
+                    {
+                        logger.Info($"Processing request: {request.RequestId}", "EXTERNAL_EVENT");
+                        logger.LogOperation(request.Action.Operation, "STARTED", $"RequestId: {request.RequestId}");
+
+                        var response = ProcessRequest(app, request.Action);
+                        request.CompletionSource.SetResult(response);
+
+                        string status = response.Success ? "SUCCESS" : "FAILED";
+                        logger.LogOperation(request.Action.Operation, status, response.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error($"Request {request.RequestId} failed", "EXTERNAL_EVENT", ex);
+
+                        var errorResponse = RevitResponse.CreateFailure(
+                            $"Revit operation failed: {ex.Message}",
+                            ex.StackTrace);
+                        request.CompletionSource.SetResult(errorResponse);
+
+                        logger.LogOperation(request.Action.Operation, "ERROR", ex.Message);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Catch any exception that occurs before we can access logger
+                System.Diagnostics.Debug.WriteLine($"CRITICAL: Execute() failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+
+                // Try to log if possible
                 try
                 {
-                    logger.Info($"Processing request: {request.RequestId}", "EXTERNAL_EVENT");
-                    logger.LogOperation(request.Action.Operation, "STARTED", $"RequestId: {request.RequestId}");
-
-                    var response = ProcessRequest(app, request.Action);
-                    request.CompletionSource.SetResult(response);
-
-                    string status = response.Success ? "SUCCESS" : "FAILED";
-                    logger.LogOperation(request.Action.Operation, status, response.Message);
+                    LoggingService.Instance.Error($"Execute() method failed critically", "EXTERNAL_EVENT", ex);
                 }
-                catch (Exception ex)
+                catch
                 {
-                    logger.Error($"Request {request.RequestId} failed", "EXTERNAL_EVENT", ex);
-
-                    var errorResponse = RevitResponse.CreateFailure(
-                        $"Revit operation failed: {ex.Message}",
-                        ex.StackTrace);
-                    request.CompletionSource.SetResult(errorResponse);
-
-                    logger.LogOperation(request.Action.Operation, "ERROR", ex.Message);
+                    // If logging also fails, we're in big trouble - but at least Debug output will show it
                 }
             }
         }

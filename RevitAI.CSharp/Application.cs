@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Windows.Media.Imaging;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.Attributes;
+using RevitAI.Services;
 
 namespace RevitAI
 {
@@ -21,6 +22,15 @@ namespace RevitAI
         {
             try
             {
+                // Initialize logging (Story 1.6)
+                var logger = LoggingService.Instance;
+                logger.Info("RevitAI application starting...", "STARTUP");
+
+                // Initialize ExternalEvent handler (Story 1.3)
+                // Must be called on main thread during startup
+                RevitEventHandler.Initialize();
+                logger.Info("ExternalEvent handler initialized", "STARTUP");
+
                 // Create RevitAI ribbon tab (only if it doesn't exist)
                 string tabName = "RevitAI";
                 string panelName = "AI Copilot";
@@ -64,10 +74,13 @@ namespace RevitAI
                 // Add Settings button
                 AddSettingsButton(panel);
 
+                logger.Info("RevitAI application started successfully", "STARTUP");
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
+                var logger = LoggingService.Instance;
+                logger.Error("Failed to initialize RevitAI", "STARTUP", ex);
                 TaskDialog.Show("RevitAI Error", $"Failed to initialize RevitAI:\n{ex.Message}");
                 return Result.Failed;
             }

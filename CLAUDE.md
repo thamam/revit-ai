@@ -4,112 +4,155 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-RevitAI is a pyRevit extension that enables architects to automate Revit tasks through natural language commands in Hebrew or English. It uses Claude API for natural language understanding and implements safety-first architecture with preview/confirm patterns.
+RevitAI is a C# Revit add-in that enables architects to automate Revit tasks through natural language commands in Hebrew or English. It uses Claude API for natural language understanding and implements safety-first architecture with preview/confirm patterns.
 
-**Current Status:** Epic 1 Complete (Foundation & Core Infrastructure) - Ready for Revit Integration Testing
+**Technology Stack:** C# .NET 8.0, Revit 2026 API, Anthropic SDK, WPF
+
+**Current Status:** Epic 1 Foundation Complete (API Integration, Safety Validation, UI Scaffold) - Completing Execution Layer (ExternalEvent, Preview/Confirm, Logging)
 
 ## Common Development Commands
+
+### Building
+
+```bash
+# Restore NuGet packages
+dotnet restore RevitAI.CSharp/RevitAI.csproj
+
+# Build project (Debug)
+dotnet build RevitAI.CSharp/RevitAI.csproj
+
+# Build for Release
+dotnet build RevitAI.CSharp/RevitAI.csproj --configuration Release
+
+# Build automatically copies DLL to:
+# %APPDATA%\Autodesk\Revit\Addins\2026\RevitAI\
+```
 
 ### Testing
 
 ```bash
-# Run all unit tests
-pytest tests/unit/
+# Run all UI tests (requires Revit running)
+dotnet test RevitAI.CSharp/tests/RevitAI.UITests/RevitAI.UITests.csproj
 
-# Run all tests with coverage
-pytest tests/ --cov=lib --cov-report=html
+# Run specific test class
+dotnet test --filter "ClassName=APIConnectionTests"
 
-# Run specific test file
-pytest tests/unit/test_claude_client.py -v
-
-# Run with markers
-pytest tests/ -m unit          # Only unit tests
-pytest tests/ -m integration   # Only integration tests
+# Run with detailed output
+dotnet test -v detailed
 ```
 
 ### Code Quality
 
 ```bash
-# Format code (automatically fixes style issues)
-black .
+# Visual Studio Code Analysis (on build)
+dotnet build /p:RunAnalyzers=true
 
-# Lint code (checks for issues)
-pylint lib/
-
-# Check specific file
-pylint lib/claude_client.py
+# Format code (requires dotnet-format tool)
+dotnet format RevitAI.CSharp/RevitAI.csproj
 ```
 
 ### Development Workflow
 
-1. Make code changes in `.extensions/RevitAI.extension/lib/`
-2. Write tests in `tests/unit/` or `tests/integration/`
-3. Run `pytest` to verify
-4. Test in Revit (pyRevit auto-reloads, or manually reload from pyRevit menu)
-5. Check logs at `%APPDATA%/pyRevit/RevitAI/logs/revit_ai.log`
+1. Make code changes in `RevitAI.CSharp/Services/`, `Commands/`, `UI/`, or `Models/`
+2. Build project: `dotnet build` (auto-deploys to Revit Addins folder)
+3. **Close and restart Revit** to load new DLL (C# requires restart, unlike pyRevit)
+4. Test changes in Revit
+5. Check logs at `%APPDATA%/RevitAI/logs/` (once logging is implemented)
 
 ### Installation for Revit Testing
 
+**Option 1: Automatic (via Build)**
 ```bash
-# Copy extension to pyRevit extensions folder
-cp -r .extensions/RevitAI.extension %APPDATA%/pyRevit/Extensions/
+# Build automatically deploys
+dotnet build RevitAI.CSharp/RevitAI.csproj
+# Restart Revit to load
+```
 
-# Install Python dependencies
-pip install -r requirements.txt
+**Option 2: Manual (PowerShell Script)**
+```powershell
+# Run installation script
+.\RevitAI.CSharp\install-addon.ps1
+# Restart Revit
+```
 
-# Reload pyRevit in Revit to see changes
-# Revit → pyRevit tab → Reload
+**Option 3: Manual (Copy Files)**
+```bash
+# Copy DLL files
+cp RevitAI.CSharp/bin/Debug/* %APPDATA%/Autodesk/Revit/Addins/2026/RevitAI/
+
+# Copy manifest
+cp RevitAI.CSharp/RevitAI.addin %APPDATA%/Autodesk/Revit/Addins/2026/
+
+# Restart Revit
 ```
 
 ## Architecture Overview
 
-### pyRevit Extension Structure
+### C# Add-in Structure
 
-This project uses **folder-based conventions** - folder names directly map to UI elements:
+This project uses **Revit's official C# API** with standard .NET project structure:
 
 ```
-.extensions/RevitAI.extension/
-├── RevitAI.tab/              → Creates "RevitAI" ribbon tab
-│   └── AI Copilot.panel/     → Creates "AI Copilot" panel
-│       ├── Copilot.pushbutton/ → Main button
-│       └── Settings.pushbutton/ → Settings button
-├── lib/                      → Shared Python modules (import from here)
-└── config/                   → Configuration files
+RevitAI.CSharp/
+├── Application.cs            → IExternalApplication (ribbon creation)
+├── RevitAI.addin             → Revit manifest file
+├── RevitAI.csproj            → .NET project file
+├── Commands/
+│   ├── CopilotCommand.cs     → IExternalCommand (main copilot)
+│   └── SettingsCommand.cs    → IExternalCommand (settings)
+├── Services/
+│   ├── ClaudeService.cs      → Claude API integration
+│   ├── SafetyValidator.cs    → Operation validation
+│   ├── RevitEventHandler.cs  → ExternalEvent handler (Story 1.3 - IN PROGRESS)
+│   └── LoggingService.cs     → Logging infrastructure (Story 1.6 - PLANNED)
+├── UI/
+│   ├── CopilotDialog.cs      → WPF main dialog
+│   ├── SettingsDialog.cs     → WPF settings dialog
+│   └── PreviewDialog.cs      → WPF preview/confirm (Story 1.5 - PLANNED)
+├── Models/
+│   └── RevitAction.cs        → Data transfer objects
+└── tests/
+    └── RevitAI.UITests/      → Selenium-based UI tests
 ```
 
-**CRITICAL:** All shared code MUST go in `lib/`, never duplicate code across buttons.
+**CRITICAL:** All shared logic goes in `Services/`, UI code in `UI/`, commands stay thin.
 
 ### Core Components
 
-1. **Claude API Integration** (`lib/claude_client.py`)
+1. **Claude API Integration** (`Services/ClaudeService.cs`) ✅ COMPLETE
    - Parses natural language (Hebrew/English) into structured JSON actions
-   - Uses Claude Sonnet 4.5 model
+   - Uses Anthropic SDK 2.0.0 with Claude Sonnet 4.5 model
    - System prompt defines operation schema and allowed operations
+   - Async/await for non-blocking API calls
 
-2. **Safety Validation** (`lib/safety_validator.py`)
+2. **Safety Validation** (`Services/SafetyValidator.cs`) ✅ COMPLETE
    - Operation allowlist: `create_dimensions`, `create_tags`, `read_elements`
    - Blocks destructive operations: `delete_elements`, `modify_walls`, etc.
    - Validates scope limits (max 500 elements by default)
+   - Returns structured `ValidationResult` with clear error messages
 
-3. **ExternalEvent Pattern** (`lib/external_event.py`)
+3. **ExternalEvent Pattern** (`Services/RevitEventHandler.cs`) 🚧 IN PROGRESS (Story 1.3)
    - Thread-safe Revit API access (required by Revit)
-   - Background thread for LLM calls (non-blocking)
-   - Main thread for Revit operations
+   - Background thread for async Claude API calls (non-blocking UI)
+   - Main thread for Revit operations via `IExternalEventHandler`
+   - Request/response queue for async communication
 
-4. **Preview/Confirm UX** (`lib/preview_graphics.py`, `lib/ui_dialogs.py`)
-   - Shows preview before any changes
-   - Requires user confirmation
+4. **Preview/Confirm UX** (`UI/PreviewDialog.cs`) 📋 PLANNED (Story 1.5)
+   - Shows WPF preview dialog before any changes
+   - Displays proposed operations with counts (e.g., "47 dimension chains")
+   - Requires user confirmation (Confirm/Cancel buttons)
    - All operations use Revit Transactions (atomic commit/rollback)
 
-5. **Configuration** (`lib/config_manager.py`)
-   - YAML config: `config/firm_defaults.yaml`
-   - API key storage: Windows Credential Manager (encrypted)
-   - Environment variable fallback: `CLAUDE_API_KEY`
+5. **Configuration** (Environment Variables + Future YAML)
+   - API key: `CLAUDE_API_KEY` environment variable
+   - Settings stored in `%APPDATA%/RevitAI/settings.yaml` (planned)
+   - Firm defaults for dimension offsets, styles, etc. (Epic 2)
 
-6. **Logging** (`lib/logger.py`)
-   - Rotating file logs: `%APPDATA%/pyRevit/RevitAI/logs/revit_ai.log`
-   - 10MB max per file, 5 backups
-   - Structured format with timestamps and levels
+6. **Logging** (`Services/LoggingService.cs`) 📋 PLANNED (Story 1.6)
+   - File logs: `%APPDATA%/RevitAI/logs/revit_ai.log`
+   - Uses `Microsoft.Extensions.Logging` framework
+   - Rotating file handler with size limits
+   - Structured format with timestamps, operation context, and log levels
 
 ### Data Flow
 

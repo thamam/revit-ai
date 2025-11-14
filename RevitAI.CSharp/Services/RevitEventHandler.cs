@@ -46,20 +46,27 @@ namespace RevitAI.Services
             var request = new RevitRequest { Action = action };
             _requestQueue.Enqueue(request);
 
+            var logger = LoggingService.Instance;
+            logger.Info($"Enqueued request {request.RequestId}, raising ExternalEvent", "EXTERNAL_EVENT");
+
             // Raise the external event to trigger Execute() on Revit main thread
-            _externalEvent.Raise();
+            var raiseResult = _externalEvent.Raise();
+            logger.Info($"ExternalEvent.Raise() returned: {raiseResult}", "EXTERNAL_EVENT");
 
             // Wait for the request to be processed (with timeout)
             var timeoutSpan = timeout ?? TimeSpan.FromSeconds(30);
             try
             {
+                logger.Info($"Waiting for response (timeout: {timeoutSpan.TotalSeconds}s)", "EXTERNAL_EVENT");
                 return await request.CompletionSource.Task.WaitAsync(timeoutSpan);
             }
             catch (TimeoutException)
             {
-                return RevitResponse.Failure(
+                logger.Error($"Request {request.RequestId} timed out after {timeoutSpan.TotalSeconds}s", "EXTERNAL_EVENT");
+                return RevitResponse.CreateFailure(
                     $"Operation timed out after {timeoutSpan.TotalSeconds} seconds. " +
-                    "Revit may be busy with another operation.");
+                    $"ExternalEvent.Raise() returned: {raiseResult}. " +
+                    "Check logs for details. Revit may be busy or Execute() was not called.");
             }
         }
 

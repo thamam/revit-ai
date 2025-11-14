@@ -109,7 +109,7 @@ if (Test-Path $testProject) {
         Write-Host "  ✓ Test project builds successfully" -ForegroundColor Green
     } else {
         Write-Host "  ✗ Test project build failed" -ForegroundColor Red
-        Write-Host "    Run 'dotnet build' in the test project directory for details" -ForegroundColor Gray
+        Write-Host "    Run dotnet build in the test project directory for details" -ForegroundColor Gray
         $allGood = $false
     }
 } else {
@@ -139,7 +139,7 @@ if ($allGood) {
 
 # Next steps
 Write-Host "Next Steps:" -ForegroundColor Cyan
-Write-Host "1. Start WinAppDriver: cd `"C:\Program Files\Windows Application Driver`"; .\WinAppDriver.exe" -ForegroundColor Gray
+Write-Host "1. Start WinAppDriver: cd 'C:\Program Files\Windows Application Driver'; .\WinAppDriver.exe" -ForegroundColor Gray
 Write-Host "2. Run tests: .\run-tests.ps1" -ForegroundColor Gray
 Write-Host "3. Check results: ..\..\..\test-results\week1\" -ForegroundColor Gray
 Write-Host ""

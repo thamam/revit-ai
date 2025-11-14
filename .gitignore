@@ -64,3 +64,29 @@ desktop.ini
 *.tmp
 *.temp
 ~$*
+
+# C# / .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.dll
+*.exe
+*.pdb
+!RevitAI.addin
+
+# C# temporary scripts (for debugging)
+RevitAI.CSharp/check-*.ps1
+RevitAI.CSharp/list-*.ps1
+
+# Extensions backup folder
+.extensions.backup/

@@ -58,7 +58,7 @@ namespace RevitAI.Models
         /// </summary>
         public string ErrorDetails { get; set; }
 
-        public static RevitResponse Success(string message, object result = null)
+        public static RevitResponse CreateSuccess(string message, object result = null)
         {
             return new RevitResponse
             {
@@ -68,7 +68,7 @@ namespace RevitAI.Models
             };
         }
 
-        public static RevitResponse Failure(string message, string errorDetails = null)
+        public static RevitResponse CreateFailure(string message, string errorDetails = null)
         {
             return new RevitResponse
             {

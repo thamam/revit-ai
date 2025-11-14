@@ -39,7 +39,7 @@ namespace RevitAI.Services
         {
             if (_externalEvent == null)
             {
-                return RevitResponse.Failure(
+                return RevitResponse.CreateFailure(
                     "RevitEventHandler not initialized. Call Initialize() during application startup.");
             }
 
@@ -95,7 +95,7 @@ namespace RevitAI.Services
                 {
                     logger.Error($"Request {request.RequestId} failed", "EXTERNAL_EVENT", ex);
 
-                    var errorResponse = RevitResponse.Failure(
+                    var errorResponse = RevitResponse.CreateFailure(
                         $"Revit operation failed: {ex.Message}",
                         ex.StackTrace);
                     request.CompletionSource.SetResult(errorResponse);
@@ -119,13 +119,13 @@ namespace RevitAI.Services
 
             if (!validation.IsValid)
             {
-                return RevitResponse.Failure($"Safety validation failed: {validation.Message}");
+                return RevitResponse.CreateFailure($"Safety validation failed: {validation.Message}");
             }
 
             // Placeholder: In Epic 2, this will execute actual Revit operations
             // based on action.Operation ("create_dimensions", "create_tags", "read_elements")
 
-            return RevitResponse.Success(
+            return RevitResponse.CreateSuccess(
                 $"Operation '{action.Operation}' validated successfully. " +
                 "Execution will be implemented in Epic 2.",
                 new { operation = action.Operation, validated = true });

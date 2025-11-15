@@ -19,7 +19,7 @@ development_status:
   # Epic 2: Intelligent Dimension Automation (NOT STARTED)
   epic-2: drafted
   2-1-dimension-command-parser: drafted
-  2-2-room-boundary-detection: drafted
-  2-3-continuous-dimension-chain: drafted
-  2-4-dimension-preview-confirmation: drafted
-  2-5-edge-case-handling: drafted
+  2-2-room-boundary-detection: backlog
+  2-3-continuous-dimension-chain: backlog
+  2-4-dimension-preview-confirmation: backlog
+  2-5-edge-case-handling: backlog

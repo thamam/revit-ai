@@ -152,9 +152,9 @@ public class RevitEventHandler
 - [x] Define `IRoomAnalyzer` interface
 - [x] Define `IDimensionFactory` interface
 - [x] Define `IRevitDocumentWrapper` interface
-- [ ] Create mock implementations
+- [x] Create mock implementations (MockFactory + POCO domain models)
 - [ ] Refactor `RevitEventHandler` to use DI
-- [x] Create 5 unit tests demonstrating pattern (9 SafetyValidator tests created)
+- [x] Create 5 unit tests demonstrating pattern (27 total tests: 9 SafetyValidator + 4 ClaudeService + 14 DimensionPlanningService)
 
 ### Day 3: Test Infrastructure
 - [ ] Set up NUnit with Revit Test Framework
@@ -165,7 +165,7 @@ public class RevitEventHandler
 ### Day 4-5: Living Specs + Documentation
 - [x] Implement Claude prompt→action specification tests (4 living spec tests)
 - [x] Document ADR-009 (already completed in Epic 1 retro)
-- [ ] Update TESTING_GUIDE.md
+- [x] Update TESTING_GUIDE.md (comprehensive guide created)
 - [x] Update README with Story 0 status (already done)
 - [ ] Commit and tag as "sil-foundation-complete"
 
@@ -221,13 +221,29 @@ Edge cases considered:
 - Rooms spanning multiple levels
 - Curved vs linear wall segments
 
-**2025-11-15 - Progress Update**
+**2025-11-15 - Progress Update (Session 1)**
 Completed from Linux:
 - ✅ All 3 interface definitions (IRoomAnalyzer, IDimensionFactory, IRevitDocumentWrapper)
 - ✅ Unit test project structure with NUnit + Moq
 - ✅ 9 SafetyValidator unit tests
 - ✅ 4 ClaudeService living specification tests
 - ✅ Sprint status tracking file
+
+**2025-11-15 - Major Progress Update (Session 2)**
+Completed - True Layer 1 SIL Architecture:
+- ✅ POCO domain models created (RoomInfo, WallInfo, DimensionInfo)
+- ✅ DimensionPlanningService - Pure business logic with NO Revit dependencies
+- ✅ 14 new unit tests for DimensionPlanningService (total 27 tests now)
+- ✅ MockFactory helper for Moq-based interface mocking
+- ✅ Comprehensive TESTING_GUIDE.md documentation (600+ lines)
+- ✅ Fixed test project reference path (was pointing to wrong location)
+
+**Key Architecture Insight:**
+The initial interfaces (IRoomAnalyzer, IDimensionFactory) use Revit API types directly, which limits testability. The solution is a **dual-layer approach**:
+- Layer 1: POCO domain objects (RoomInfo, WallInfo) + pure logic services (DimensionPlanningService)
+- Layer 2: Adapter pattern converts Revit ↔ POCOs (to be implemented)
+
+This enables true millisecond testing: 14 tests for DimensionPlanningService use only POCOs, demonstrating room dimension planning, validation, chain creation, and error handling WITHOUT any Revit dependency.
 
 **BLOCKED - Requires Windows/Revit:**
 - AC-0.1: Cannot verify tests run < 1 second (no dotnet on Linux)
@@ -237,25 +253,36 @@ Completed from Linux:
 
 **Next Steps (On Windows):**
 1. Pull latest changes: `git pull`
-2. Build main project: `dotnet build RevitAI.CSharp/RevitAI.csproj`
+2. Build main project: `dotnet build RevitAI.csproj`
 3. Build test project: `dotnet build RevitAI.CSharp/tests/RevitAI.UnitTests/`
 4. Run unit tests: `dotnet test RevitAI.CSharp/tests/RevitAI.UnitTests/`
-5. Verify tests pass in < 1 second
-6. Continue with Layer 2 setup (Revit Test Framework)
+5. Verify tests pass in < 1 second (expect 27 tests)
+6. Fix any compilation issues (may need to adjust Revit API references in MockFactory)
+7. Continue with Layer 2 setup (Revit Test Framework)
 
 ### Completion Notes
 <!-- Summary of what was implemented -->
-**Partial Implementation - Core SIL Architecture Established**
+**Substantial Implementation - Core SIL Architecture Established**
 
-Layer 1 infrastructure created:
+**Layer 1 Infrastructure (COMPLETE):**
 - 3 interface abstractions for Revit API operations
+- 3 POCO domain models (RoomInfo, WallInfo, DimensionInfo) enabling true unit testing
+- 1 pure business logic service (DimensionPlanningService) with zero Revit dependencies
 - Unit test project with NUnit 3.14.0, Moq 4.20.70
-- 13 total tests (9 SafetyValidator + 4 ClaudeService living specs)
+- MockFactory for interface mocking
+- 27 total tests:
+  - 9 SafetyValidator tests (operation allowlist, scope validation)
+  - 4 ClaudeService living spec tests (Hebrew/English NLU)
+  - 14 DimensionPlanningService tests (Layer 1 pure logic)
+- Comprehensive TESTING_GUIDE.md (600+ lines) explaining hybrid architecture
 - Sprint status tracking enabled
 
-Blocked on Windows/Revit environment for:
-- Compilation verification
-- Test execution timing
+**Key Achievement:**
+Created the foundational pattern for SIL testing: POCOs + pure logic services = testable business logic without Revit. The DimensionPlanningService demonstrates exactly how to structure code for fast feedback loops.
+
+**Still Blocked on Windows/Revit environment for:**
+- Compilation verification (need dotnet CLI)
+- Test execution timing validation (verify < 1 second)
 - Layer 2 Revit Test Framework setup
 - .rvt fixture creation
 
@@ -263,6 +290,8 @@ Blocked on Windows/Revit environment for:
 
 ## File List
 <!-- Files created, modified, or deleted -->
+
+### Session 1 (Initial Setup)
 - **Created:** `RevitAI.CSharp/Services/Interfaces/IRoomAnalyzer.cs`
 - **Created:** `RevitAI.CSharp/Services/Interfaces/IDimensionFactory.cs`
 - **Created:** `RevitAI.CSharp/Services/Interfaces/IRevitDocumentWrapper.cs`
@@ -272,11 +301,22 @@ Blocked on Windows/Revit environment for:
 - **Created:** `docs/sprint-status.yaml`
 - **Renamed:** `docs/stories/story-0-sil-foundation.md` → `docs/stories/0-0-sil-foundation.md`
 
+### Session 2 (Layer 1 Architecture)
+- **Created:** `RevitAI.CSharp/Models/Domain/RoomInfo.cs` - POCO for room data
+- **Created:** `RevitAI.CSharp/Models/Domain/WallInfo.cs` - POCO for wall/segment data
+- **Created:** `RevitAI.CSharp/Models/Domain/DimensionInfo.cs` - POCO for dimension plans
+- **Created:** `RevitAI.CSharp/Services/DimensionPlanningService.cs` - Pure business logic (NO Revit deps)
+- **Created:** `RevitAI.CSharp/tests/RevitAI.UnitTests/DimensionPlanningServiceTests.cs` - 14 Layer 1 tests
+- **Created:** `RevitAI.CSharp/tests/RevitAI.UnitTests/Mocks/MockFactory.cs` - Moq helper factory
+- **Created:** `RevitAI.CSharp/docs/TESTING_GUIDE.md` - Comprehensive testing documentation
+- **Modified:** `RevitAI.CSharp/tests/RevitAI.UnitTests/RevitAI.UnitTests.csproj` - Fixed project reference path
+
 ---
 
 ## Change Log
 <!-- Chronological record of major changes -->
 - 2025-11-15: Story created from Epic 1 Retrospective
+- 2025-11-15: Session 2 - Implemented true Layer 1 SIL architecture with POCOs and pure logic services
 
 ---
 

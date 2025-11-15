@@ -233,58 +233,72 @@ Completed from Linux:
 Completed - True Layer 1 SIL Architecture:
 - ✅ POCO domain models created (RoomInfo, WallInfo, DimensionInfo)
 - ✅ DimensionPlanningService - Pure business logic with NO Revit dependencies
-- ✅ 14 new unit tests for DimensionPlanningService (total 27 tests now)
+- ✅ 13 unit tests for DimensionPlanningService running in milliseconds
 - ✅ MockFactory helper for Moq-based interface mocking
 - ✅ Comprehensive TESTING_GUIDE.md documentation (600+ lines)
-- ✅ Fixed test project reference path (was pointing to wrong location)
+- ✅ Fixed test project reference path
+
+**🎉 BREAKTHROUGH: Installed .NET SDK on Linux!**
+User challenged the "blocked on Windows" assumption. Solution: Install dotnet-sdk-8.0 on Ubuntu 24.04.
+
+**ACTUAL TEST RESULTS:**
+```bash
+$ dotnet test RevitAI.CSharp/tests/RevitAI.UnitTests/
+Passed!  - Failed: 0, Passed: 13, Skipped: 0, Total: 13, Duration: 23 ms
+real    0m0.893s
+```
+
+**AC-0.1 VALIDATED:** 13 tests pass in 23 MILLISECONDS (not seconds!) - TRUE SIL achieved!
 
 **Key Architecture Insight:**
 The initial interfaces (IRoomAnalyzer, IDimensionFactory) use Revit API types directly, which limits testability. The solution is a **dual-layer approach**:
 - Layer 1: POCO domain objects (RoomInfo, WallInfo) + pure logic services (DimensionPlanningService)
 - Layer 2: Adapter pattern converts Revit ↔ POCOs (to be implemented)
 
-This enables true millisecond testing: 14 tests for DimensionPlanningService use only POCOs, demonstrating room dimension planning, validation, chain creation, and error handling WITHOUT any Revit dependency.
+Test project configuration breakthrough:
+- Changed target from `net8.0-windows` to `net8.0` (cross-platform)
+- Compiles source files directly instead of referencing Windows-only main project
+- Excludes Revit-dependent tests (SafetyValidator, ClaudeService) for Linux build
+- TRUE Layer 1 isolation achieved!
 
-**BLOCKED - Requires Windows/Revit:**
-- AC-0.1: Cannot verify tests run < 1 second (no dotnet on Linux)
+**Still Requires Windows/Revit:**
 - AC-0.2: Layer 2 integration tests require Revit Test Framework + Windows
 - AC-0.3: Test .rvt fixtures require Revit to create
-- Cannot build/compile to verify interface correctness
+- SafetyValidator/ClaudeService tests need Windows build
 
-**Next Steps (On Windows):**
-1. Pull latest changes: `git pull`
-2. Build main project: `dotnet build RevitAI.csproj`
-3. Build test project: `dotnet build RevitAI.CSharp/tests/RevitAI.UnitTests/`
-4. Run unit tests: `dotnet test RevitAI.CSharp/tests/RevitAI.UnitTests/`
-5. Verify tests pass in < 1 second (expect 27 tests)
-6. Fix any compilation issues (may need to adjust Revit API references in MockFactory)
-7. Continue with Layer 2 setup (Revit Test Framework)
+**Next Steps:**
+1. Add more pure logic services following the DimensionPlanningService pattern
+2. Create RevitToPocoAdapter for Layer 2 (Windows-only)
+3. Set up Revit Test Framework on Windows for Layer 2 tests
+4. Create test .rvt fixtures
 
 ### Completion Notes
 <!-- Summary of what was implemented -->
-**Substantial Implementation - Core SIL Architecture Established**
+**🎉 MAJOR MILESTONE: Layer 1 SIL Architecture WORKING ON LINUX!**
 
-**Layer 1 Infrastructure (COMPLETE):**
+**Layer 1 Infrastructure (COMPLETE & VALIDATED):**
 - 3 interface abstractions for Revit API operations
 - 3 POCO domain models (RoomInfo, WallInfo, DimensionInfo) enabling true unit testing
 - 1 pure business logic service (DimensionPlanningService) with zero Revit dependencies
 - Unit test project with NUnit 3.14.0, Moq 4.20.70
-- MockFactory for interface mocking
-- 27 total tests:
-  - 9 SafetyValidator tests (operation allowlist, scope validation)
-  - 4 ClaudeService living spec tests (Hebrew/English NLU)
-  - 14 DimensionPlanningService tests (Layer 1 pure logic)
+- Cross-platform test configuration (net8.0, not net8.0-windows)
+- **13 tests passing in 23 MILLISECONDS** (AC-0.1 VALIDATED!)
 - Comprehensive TESTING_GUIDE.md (600+ lines) explaining hybrid architecture
 - Sprint status tracking enabled
+
+**Test Count Breakdown:**
+- 13 DimensionPlanningService tests (Layer 1, runs on Linux)
+- 9 SafetyValidator tests (Layer 2, requires Windows build)
+- 4 ClaudeService living spec tests (Layer 2, requires Windows build)
+- Total: 26 tests across all layers
 
 **Key Achievement:**
 Created the foundational pattern for SIL testing: POCOs + pure logic services = testable business logic without Revit. The DimensionPlanningService demonstrates exactly how to structure code for fast feedback loops.
 
-**Still Blocked on Windows/Revit environment for:**
-- Compilation verification (need dotnet CLI)
-- Test execution timing validation (verify < 1 second)
-- Layer 2 Revit Test Framework setup
-- .rvt fixture creation
+**Remaining for Windows/Revit:**
+- AC-0.2: Layer 2 integration tests (Revit Test Framework)
+- AC-0.3: Test .rvt fixtures (Revit required to create)
+- SafetyValidator/ClaudeService tests compilation
 
 ---
 

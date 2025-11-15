@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- Use standard .NET 8 (not Windows-specific) for cross-platform testing -->
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -17,9 +18,30 @@
     <PackageReference Include="Moq" Version="4.20.70" />
   </ItemGroup>
 
+  <!--
+    LAYER 1 SIL TESTING STRATEGY:
+    Instead of referencing the main project (which has Windows/Revit dependencies),
+    we compile ONLY the pure logic files that have NO external dependencies.
+    This enables true cross-platform millisecond testing.
+  -->
   <ItemGroup>
-    <!-- Reference main project: tests/RevitAI.UnitTests/ -> tests/ -> RevitAI.CSharp/ -> root/RevitAI.csproj -->
-    <ProjectReference Include="..\..\..\RevitAI.csproj" />
+    <!-- POCO Domain Models - Pure C#, no dependencies -->
+    <Compile Include="..\..\Models\Domain\RoomInfo.cs" Link="Domain\RoomInfo.cs" />
+    <Compile Include="..\..\Models\Domain\WallInfo.cs" Link="Domain\WallInfo.cs" />
+    <Compile Include="..\..\Models\Domain\DimensionInfo.cs" Link="Domain\DimensionInfo.cs" />
+
+    <!-- Pure Business Logic Services - No Revit dependencies -->
+    <Compile Include="..\..\Services\DimensionPlanningService.cs" Link="Services\DimensionPlanningService.cs" />
+  </ItemGroup>
+
+  <!--
+    EXCLUDE tests that depend on Revit/Windows-only services.
+    These will be run as Layer 2 tests on Windows.
+  -->
+  <ItemGroup>
+    <Compile Remove="SafetyValidatorTests.cs" />
+    <Compile Remove="ClaudeServiceTests.cs" />
+    <Compile Remove="Mocks\MockFactory.cs" />
   </ItemGroup>
 
 </Project>

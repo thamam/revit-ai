@@ -285,6 +285,13 @@ See [docs/architecture.md](docs/architecture.md) for complete architectural deci
 - [x] Story 1.6: Logging & Diagnostics Infrastructure
 - [x] Story 1.7: Basic Ribbon UI with Test Buttons
 
+### 🚧 Phase 1.5: SIL Foundation (Story 0) - Next
+- [ ] Hybrid Testing Architecture (Layer 1/2/3)
+- [ ] Interface definitions (IRoomAnalyzer, IDimensionFactory)
+- [ ] Test fixtures (.rvt with known geometry)
+- [ ] Living specification tests (prompt→action)
+- [ ] Sub-second feedback loops for business logic
+
 ### Phase 2: Validation Feature (Epic 2)
 - [ ] Story 2.1: Dimension Command Parser (NLU for Dimensions)
 - [ ] Story 2.2: Room Boundary Detection & Wall Analysis

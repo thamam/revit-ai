@@ -895,3 +895,124 @@ _For: Doc_
 
 _Updated with ADR-008_
 _Date: 2025-11-15_
+
+---
+
+### ADR-009: Modal Dialog Blocking Pattern for ExternalEvent
+
+**Decision**: Close WPF modal dialogs before awaiting ExternalEvent responses
+
+**Rationale**:
+- **Root Cause**: WPF `ShowDialog()` blocks Revit's main thread event loop
+- **Problem**: ExternalEvent callbacks require Revit's idle processing to invoke `Execute()`
+- **Evidence**: Requests timed out after 30s but executed 10+ minutes later when dialog closed
+- **Fix**: Call `Close()` on dialog before `await` on ExternalEvent response
+
+**Technical Details**:
+
+The ExternalEvent pattern requires Revit's main thread to be idle to process callbacks. When a WPF modal dialog (`ShowDialog()`) is open, it keeps the UI thread busy in its own message pump, preventing Revit from reaching its idle state.
+
+**Before (Broken)**:
+```csharp
+private async void TestEventButton_Click(object sender, RoutedEventArgs e)
+{
+    _statusTextBlock.Text = "Testing..."; // Dialog still open
+    var response = await RevitEventHandler.TestEventHandlerAsync(); // TIMES OUT!
+    // Execute() never called because dialog blocks Revit's idle loop
+}
+```
+
+**After (Fixed)**:
+```csharp
+private async void TestEventButton_Click(object sender, RoutedEventArgs e)
+{
+    Close(); // Release Revit's UI thread FIRST
+    var response = await RevitEventHandler.TestEventHandlerAsync(); // Works!
+    TaskDialog.Show("Result", response.Message); // Use Revit's dialog
+}
+```
+
+**Key Insight**: The `await` in an async button handler yields control back to the message pump, but if that message pump is the WPF dialog's pump (not Revit's), the ExternalEvent callback is never invoked.
+
+**Performance Improvement**:
+- Before: 30+ second timeout (Execute never called)
+- After: 0.5-0.7 seconds for Execute callback
+
+**Log Evidence** (from debugging session):
+```
+01:25:40.909 Enqueued request, raising ExternalEvent
+01:25:40.912 ExternalEvent.Raise() returned: Accepted
+01:25:41.557 Execute() called by Revit, queue count: 1  // 0.645s
+```
+
+**Implications for Epic 2**:
+- All async operations that use ExternalEvent must NOT block Revit's UI thread
+- Consider modeless dialogs (`Show()`) instead of modal (`ShowDialog()`) for long operations
+- Alternatively, close dialog before awaiting, show results in separate dialog
+
+**Lesson Learned**:
+Comprehensive diagnostic logging (added during debugging) made this root cause discoverable. Without the detailed timestamps showing Raise() success but Execute() absence, this would have been extremely difficult to diagnose.
+
+**Status**: Accepted and Implemented (Commit 9bdd80f)
+
+---
+
+### ADR-010: Hybrid Testing Architecture for SIL (Software-in-the-Loop)
+
+**Decision**: Implement three-layer testing architecture separating business logic from Revit API integration
+
+**Rationale**:
+- **Open-loop problem**: Current dev cycle is 5-10 minutes per iteration (manual Revit restart)
+- **SIL value**: Fast feedback loops enable 10x development velocity
+- **Long-term ROI**: Investment pays dividends across ALL future epics
+- **Architecture quality**: Dependency Inversion enables testability AND portability
+
+**Three-Layer Architecture**:
+
+**Layer 1: Pure Business Logic (Millisecond Tests)**
+- No Revit API dependencies
+- Dimension placement algorithms
+- Room analysis heuristics
+- Safety validation logic
+- Claude prompt parsing
+- Mock implementations for unit testing
+
+**Layer 2: Revit API Wrapper (CI-Automated Tests)**
+- Thin integration layer
+- `IRoomAnalyzer`, `IDimensionFactory` interfaces
+- Real Revit API calls wrapped in abstractions
+- Integration tests with Revit Test Framework
+- Deterministic test fixtures (.rvt files with known geometry)
+
+**Layer 3: End-to-End Acceptance (Semi-Automated)**
+- Full workflow validation
+- User-facing feature testing
+- Run weekly or before releases
+
+**Benefits**:
+1. **80% of code** (Layer 1) tests in milliseconds without Revit
+2. **15% of code** (Layer 2) needs Revit but is stable/thin
+3. **5% of code** (Layer 3) is glue, validated by acceptance tests
+
+**Interface Example**:
+```csharp
+public interface IRoomAnalyzer {
+    IEnumerable<Room> GetAllRooms(Document doc);
+    IEnumerable<Wall> GetBoundingWalls(Room room);
+}
+```
+
+High-level logic depends on abstractions, not Revit API directly. Test doubles inject at these seams.
+
+**Living Documentation**:
+- Claude prompt→action tests serve as executable specs
+- PRD examples become test cases
+- Requirements traceable to tests
+
+**Status**: Accepted (Pending Implementation in Story 0)
+
+---
+
+_Updated with ADR-009 and ADR-010_
+_Date: 2025-11-15_
+_Epic 1 Retrospective Outcomes_

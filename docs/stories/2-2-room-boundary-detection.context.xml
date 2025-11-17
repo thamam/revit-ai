@@ -1,0 +1,184 @@
+<story-context id="story-2-2-room-boundary-detection" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2</storyId>
+    <title>Room Boundary Detection & Wall Analysis</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-16</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-2-room-boundary-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>extract room boundaries and analyze wall geometry</iWant>
+    <soThat>I can calculate where to place dimension chains</soThat>
+    <tasks>
+      <task id="1" ac="2.2.1,2.2.5">Design Room Boundary POCO Models
+        - Create RoomBoundaryInfo POCO (following Story 2.1 pattern)
+        - Create WallSegmentInfo POCO with start/end points, normal, orientation
+        - Create OpeningInfo POCO for doors/windows
+        - Add factory methods for test data (CreateRectangular, CreateLShaped, etc.)
+        - Follow Layer 1 SIL pattern: no Revit dependencies, POCOs only
+      </task>
+      <task id="2" ac="2.2.1,2.2.2,2.2.5">Implement RoomBoundaryAnalyzer Service
+        - Create RoomBoundaryAnalyzer.cs in Services/ folder (Layer 1 pure logic)
+        - Implement AnalyzeBoundary(RoomInfo roomInfo) → RoomBoundaryInfo method
+        - Extract wall segments with start/end points
+        - Calculate wall normals (perpendicular to wall for offset direction)
+        - Identify corners (wall junction points)
+        - Filter room separators vs. physical walls
+      </task>
+      <task id="3" ac="2.2.1">Implement Revit Integration (Layer 2)
+        - Create RevitRoomBoundaryExtractor.cs in Services/Revit/ folder
+        - Use Room.GetBoundarySegments() API to extract boundary curves
+        - Convert Revit curves to POCOs (RoomInfo → WallSegmentInfo list)
+        - Handle multi-segment boundaries (L-shaped, U-shaped rooms)
+        - Return POCO data structures for Layer 1 processing
+      </task>
+      <task id="4" ac="2.2.2,2.2.3,2.2.4">Implement Geometric Feature Detection
+        - Detect openings (doors/windows) in wall segments
+        - Identify curved walls (check curve geometry type)
+        - Calculate angles for non-orthogonal walls
+        - Flag special cases (curves, angles) in POCO properties
+        - Store opening positions for dimension gap logic
+      </task>
+      <task id="5" ac="all">Create Unit Tests
+        - Test RoomBoundaryAnalyzer with rectangular room (minimum 3 test cases)
+        - Test L-shaped room (multi-segment boundary)
+        - Test room with openings (doors/windows)
+        - Test curved wall detection
+        - Test angled wall processing
+        - Test room separator filtering
+        - Follow Layer 1 pattern: Use POCOs, test in milliseconds (< 1 second total)
+      </task>
+      <task id="6" ac="all">Add LoggingService Integration (from Story 2.1 Action Item)
+        - Add LoggingService to RoomBoundaryAnalyzer
+        - Log boundary analysis start/completion
+        - Log warnings for curved/angled walls
+        - Log filtered room separators count
+        - Follow Story 1.6 LoggingService patterns
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="2.2.1" title="Wall Segment Extraction">
+      - Given a list of rooms from the parsed scope
+      - When I analyze room boundaries using Room.GetBoundarySegments()
+      - Then wall segments are extracted with start/end points and orientation
+      - And wall normals are calculated for dimension offset direction
+    </ac>
+    <ac id="2.2.2" title="Geometric Feature Detection">
+      - Corners and wall junctions are identified
+      - Openings (doors/windows) are detected and recorded
+      - Opening positions are marked for dimension gap handling
+    </ac>
+    <ac id="2.2.3" title="Curved Wall Handling">
+      - Curved walls are detected (arc geometry)
+      - Curved wall segments flagged for special processing
+      - Curve data preserved for future dimension placement logic
+    </ac>
+    <ac id="2.2.4" title="Angled Wall Processing">
+      - Non-orthogonal (angled) walls are processed correctly
+      - Wall angles are calculated relative to project coordinate system
+      - Angled walls do not cause dimension generation failures
+    </ac>
+    <ac id="2.2.5" title="Room Separator Filtering">
+      - Room separators (non-physical boundaries) are filtered out
+      - Only actual walls with physical geometry are included
+      - Boundary type distinction is clear in data structure
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics.md" title="Epic 2 Story Specifications" section="Story 2.2">
+        Story 2.2 defines acceptance criteria for room boundary detection: extract wall segments with start/end/orientation, identify corners and openings, handle curved/angled walls, filter room separators. Technical notes specify using Room.GetBoundarySegments() API, calculating wall normals for dimension offset, and handling multi-segment boundaries.
+      </doc>
+      <doc path="docs/PRD.md" title="Product Requirements" section="Epic 2 Goal">
+        Epic 2 aims to enable architects to dimension floor plans through natural language ("Add internal dimensions to all rooms") - automating 3 days of manual work per project. Quality requirement: professional dimension placement with firm standards.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture Documentation" section="Layer 1 SIL Pattern">
+        Layer 1 SIL (Service Isolation Layer) pattern requires POCOs with NO Revit API dependencies, enabling cross-platform testing in milliseconds. Business logic must use POCOs, not Revit types. Service separation: Layer 1 = pure logic (testable), Layer 2 = Revit API integration.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture Documentation" section="Epic 2 Components">
+        Epic 2 components include room_analyzer (C# equiv: RoomBoundaryAnalyzer.cs) for boundary detection. Expected file structure: RevitAI.CSharp/Services/RoomBoundaryAnalyzer.cs, RevitAI.CSharp/Models/Domain/RoomBoundaryInfo.cs.
+      </doc>
+      <doc path="CLAUDE.md" title="Development Guide" section="Testing Standards">
+        NUnit + Moq for Layer 1 tests. Tests must run in < 1 second on Linux. Follow Arrange-Act-Assert pattern. Create POCO test data factories (e.g., RoomInfo.CreateRectangular()). Living specification tests tie PRD examples to executable code.
+      </doc>
+      <doc path="docs/stories/2-1-dimension-command-parser.md" title="Previous Story - Command Parser" section="Dev Agent Record">
+        Story 2.1 created DimensionCommand POCO models (operation, target scope, parameters). This story will CONSUME parsed commands - use DimensionCommand.Target.ScopeType to filter which rooms to analyze. Story 2.1 achieved 24 tests in 123ms following Layer 1 pattern.
+      </doc>
+      <doc path="docs/stories/action-items-story-2-1.md" title="Action Items from Story 2.1" section="AI-1">
+        Action item: Add LoggingService integration in Story 2.2. Log boundary analysis operations, warnings for curved/angled walls, filtered room separators. Files to modify: RoomBoundaryAnalyzer.cs (add logging).
+      </doc>
+    </docs>
+    <code>
+      <file path="RevitAI.CSharp/Models/Domain/RoomInfo.cs" kind="POCO" symbol="RoomInfo" lines="1-80" reason="Existing POCO for room data - REUSE for boundary analysis input. Has factory method CreateRectangular() for test data. Contains ElementId, Name, Number, Area, LevelName, BoundingMin/Max, BoundingWallIds list."/>
+      <file path="RevitAI.CSharp/Models/Domain/WallInfo.cs" kind="POCO" symbol="WallInfo" lines="1-50" reason="Existing POCO for wall data - may need extension for wall segments. Currently has thickness, height, orientation. Consider extending or creating WallSegmentInfo."/>
+      <file path="RevitAI.CSharp/Models/Domain/DimensionInfo.cs" kind="POCO" symbol="DimensionInfo" lines="1-40" reason="Existing POCO for dimension data - will be used by Story 2.3 for dimension creation. Reference for POCO patterns."/>
+      <file path="RevitAI.CSharp/Services/DimensionPlanningService.cs" kind="service" symbol="DimensionPlanningService" lines="1-100" reason="Layer 1 pure logic pattern - follow same structure for RoomBoundaryAnalyzer. Uses POCOs, no Revit dependencies, testable in milliseconds."/>
+      <file path="RevitAI.CSharp/Models/Commands/DimensionCommand.cs" kind="POCO" symbol="DimensionCommand" lines="1-78" reason="From Story 2.1 - contains operation, target scope, parameters. This story CONSUMES parsed commands to determine which rooms to analyze."/>
+      <file path="RevitAI.CSharp/Models/Commands/TargetScope.cs" kind="POCO" symbol="TargetScope" lines="1-79" reason="From Story 2.1 - contains element_type, scope_type (all/selected/level/view), level_name. Use to filter rooms for boundary analysis."/>
+      <file path="RevitAI.CSharp/Services/NLU/DimensionCommandParser.cs" kind="service" symbol="DimensionCommandParser" lines="1-165" reason="From Story 2.1 - provides parsed commands. RoomBoundaryAnalyzer will process rooms identified by parser's target scope."/>
+      <file path="RevitAI.CSharp/tests/RevitAI.UnitTests/DimensionPlanningServiceTests.cs" kind="test" symbol="DimensionPlanningServiceTests" lines="1-150" reason="Example of Layer 1 testing pattern - use as template for RoomBoundaryAnalyzerTests. Shows Arrange-Act-Assert, POCO factories, millisecond performance."/>
+      <file path="RevitAI.CSharp/tests/RevitAI.UnitTests/NLU/DimensionCommandParserTests.cs" kind="test" symbol="DimensionCommandParserTests" lines="1-567" reason="From Story 2.1 - 20 tests in 123ms. Reference for test organization, factory methods, Moq mocking patterns."/>
+    </code>
+    <dependencies>
+      <csharp>
+        <package name=".NET" version="8.0"/>
+        <package name="Revit API" version="2026.0.0" note="Layer 2 only - NOT in Layer 1 POCOs/tests"/>
+        <package name="NUnit" version="3.14.0"/>
+        <package name="Moq" version="4.20.70"/>
+        <package name="System.Text.Json" version="8.0.5"/>
+      </csharp>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint id="c1" type="architectural">Layer 1 SIL Pattern: RoomBoundaryInfo, WallSegmentInfo, OpeningInfo must be POCOs with NO Revit API dependencies. Use primitive types only (int, double, string, List, tuples).</constraint>
+    <constraint id="c2" type="architectural">Service Separation: Layer 1 = RoomBoundaryAnalyzer (pure logic, testable), Layer 2 = RevitRoomBoundaryExtractor (Revit API integration). Layer 1 must not reference Autodesk.Revit namespace.</constraint>
+    <constraint id="c3" type="testing">Tests must run in &lt; 1 second on Linux net8.0. Use POCOs only, no Revit dependencies. Target: 10+ tests in &lt; 500ms (Story 2.1 achieved 24 tests in 123ms).</constraint>
+    <constraint id="c4" type="pattern">Factory Methods: Add CreateRectangular(), CreateLShaped(), CreateWithOpenings() to POCOs for test data (following RoomInfo.CreateRectangular() pattern from Story 0).</constraint>
+    <constraint id="c5" type="pattern">Interface-Based Design: If creating service interfaces, follow IClaudeService pattern from Story 2.1 (enables Moq mocking).</constraint>
+    <constraint id="c6" type="logging">LoggingService Integration Required: Add logging to RoomBoundaryAnalyzer following Story 1.6 patterns. Log analysis start/completion, warnings for curved/angled walls, filtered separator count.</constraint>
+    <constraint id="c7" type="naming">Namespace: RevitAI.Models.Domain for POCOs, RevitAI.Services for Layer 1, RevitAI.Services.Revit for Layer 2.</constraint>
+    <constraint id="c8" type="testing">Test Framework: NUnit + Moq. Follow Arrange-Act-Assert pattern. Tests in RevitAI.UnitTests with [TestFixture] and [Test] attributes.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="RoomInfo" kind="POCO" signature="class RoomInfo { long ElementId; string Name; string Number; double Area; string LevelName; (double,double,double) BoundingMin/Max; List&lt;long&gt; BoundingWallIds; static CreateRectangular(...) }" path="RevitAI.CSharp/Models/Domain/RoomInfo.cs"/>
+    <interface name="WallInfo" kind="POCO" signature="class WallInfo { long ElementId; double Thickness; double Height; string Orientation; ... }" path="RevitAI.CSharp/Models/Domain/WallInfo.cs"/>
+    <interface name="DimensionCommand" kind="POCO" signature="class DimensionCommand { string Operation; TargetScope Target; DimensionParameters Parameters; bool RequiresClarification; string? ClarificationQuestion }" path="RevitAI.CSharp/Models/Commands/DimensionCommand.cs"/>
+    <interface name="TargetScope" kind="POCO" signature="class TargetScope { string ElementType; string ScopeType; string? LevelName; List&lt;string&gt;? ExclusionFilters }" path="RevitAI.CSharp/Models/Commands/TargetScope.cs"/>
+    <interface name="Room.GetBoundarySegments()" kind="Revit API" signature="IList&lt;IList&lt;BoundarySegment&gt;&gt; GetBoundarySegments(SpatialElementBoundaryOptions options)" path="Revit API Documentation" note="Layer 2 only - Returns multi-loop boundary segments. First loop is outer boundary, subsequent loops are holes/islands."/>
+  </interfaces>
+
+  <tests>
+    <standards>
+NUnit 3.14.0 + Moq 4.20.70 for Layer 1 unit tests. Tests must run in &lt; 1 second on Linux (net8.0). Follow Arrange-Act-Assert pattern with clear sections. Use POCO factory methods for test data (e.g., RoomBoundaryInfo.CreateRectangular()). Tests go in RevitAI.UnitTests project with [TestFixture] and [Test] attributes. Add [Category("Unit")] and [Category("Layer1")] tags. Target performance: 10+ tests in &lt; 500ms (Story 2.1 achieved 24 tests in 123ms). No external dependencies - use Moq for mocking, no actual Revit API calls.
+    </standards>
+    <locations>
+      <location>RevitAI.CSharp/tests/RevitAI.UnitTests/Services/RoomBoundaryAnalyzerTests.cs</location>
+      <location>RevitAI.CSharp/tests/RevitAI.UnitTests/Models/Domain/RoomBoundaryInfoTests.cs</location>
+    </locations>
+    <ideas>
+      <idea ac="2.2.1" test="AnalyzeBoundary_RectangularRoom_ExtractsWallSegments">Given RoomInfo with 4 walls, when AnalyzeBoundary called, then 4 WallSegmentInfo returned with correct start/end points and normals.</idea>
+      <idea ac="2.2.1" test="AnalyzeBoundary_RectangularRoom_CalculatesWallNormals">Given rectangular room, when analyzed, then wall normals perpendicular to walls pointing outward for dimension offset.</idea>
+      <idea ac="2.2.2" test="AnalyzeBoundary_RoomWithCorners_IdentifiesJunctions">Given L-shaped room, when analyzed, then corner/junction points identified at wall intersections.</idea>
+      <idea ac="2.2.2" test="AnalyzeBoundary_RoomWithDoor_DetectsOpening">Given room with door opening, when analyzed, then opening detected with position and size.</idea>
+      <idea ac="2.2.2" test="AnalyzeBoundary_RoomWithWindows_DetectsMultipleOpenings">Given room with 2 windows, when analyzed, then both openings recorded in WallSegmentInfo.</idea>
+      <idea ac="2.2.3" test="AnalyzeBoundary_CurvedWall_FlaggedAsSpecial">Given room with curved wall, when analyzed, then wall flagged with IsCurved=true.</idea>
+      <idea ac="2.2.3" test="AnalyzeBoundary_CurvedWall_PreservesCurveData">Given curved wall, when analyzed, then curve radius/arc data preserved in WallSegmentInfo.</idea>
+      <idea ac="2.2.4" test="AnalyzeBoundary_AngledWall_CalculatesAngle">Given non-orthogonal wall, when analyzed, then wall angle calculated relative to project coordinates.</idea>
+      <idea ac="2.2.4" test="AnalyzeBoundary_AngledWall_DoesNotThrow">Given angled walls, when analyzed, then no exceptions thrown (handles gracefully).</idea>
+      <idea ac="2.2.5" test="AnalyzeBoundary_RoomSeparators_FilteredOut">Given room with separator boundary, when analyzed, then separator not included in physical wall list.</idea>
+      <idea ac="2.2.5" test="AnalyzeBoundary_MixedBoundaries_OnlyPhysicalWalls">Given room with 2 walls + 1 separator, when analyzed, then only 2 WallSegmentInfo returned.</idea>
+      <idea ac="all" test="RoomBoundaryInfo_CreateRectangular_ValidFactory">Test factory method creates valid rectangular room boundary with 4 walls.</idea>
+      <idea ac="all" test="RoomBoundaryInfo_CreateLShaped_ValidFactory">Test factory method creates L-shaped boundary with 6 walls and 2 internal corners.</idea>
+      <idea ac="all" test="WallSegmentInfo_CreateWithOpening_ValidFactory">Test factory method creates wall segment with door/window opening.</idea>
+    </ideas>
+  </tests>
+</story-context>

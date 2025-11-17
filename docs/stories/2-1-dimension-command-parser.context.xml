@@ -1,0 +1,248 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>1</storyId>
+    <title>Dimension Command Parser (NLU for Dimensions)</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-16</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-1-dimension-command-parser.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to parse natural language dimension prompts into structured actions</iWant>
+    <soThat>the system understands the user's intent and scope for dimensioning operations</soThat>
+    <tasks>
+- Task 1: Design NLU System Prompt (AC: 2.1.1, 2.1.2)
+  - Create system prompt with Revit context (available levels, element types)
+  - Define action schema with TypeScript-style types for validation
+  - Include Hebrew/English examples in prompt
+  - Add firm standard defaults (dimension offset, style preferences)
+
+- Task 2: Implement DimensionCommandParser Service (AC: 2.1.2, 2.1.3)
+  - Create POCO models for DimensionCommand, TargetScope, DimensionParameters
+  - Implement parsing logic with JSON deserialization
+  - Add scope recognition (all rooms, selected, level-filtered, current view)
+  - Follow DimensionPlanningService pattern (Layer 1 pure logic where possible)
+
+- Task 3: Integrate with ClaudeService (AC: 2.1.1, 2.1.5)
+  - Add ParseDimensionCommand method to ClaudeService
+  - Include Revit context in API call (levels, current view, selection)
+  - Handle API errors and network failures
+  - Implement retry logic for transient failures
+
+- Task 4: Implement Ambiguity Resolution Flow (AC: 2.1.4)
+  - Design clarification question schema
+  - Track conversation state for multi-turn resolution
+  - Validate user responses and refine action
+  - Add timeout/cancel for stuck conversations
+
+- Task 5: Create Unit Tests (AC: All)
+  - Test Hebrew command parsing (minimum 5 test cases)
+  - Test English command parsing (minimum 5 test cases)
+  - Test scope recognition (all rooms, selected, level, view)
+  - Test ambiguity detection and question generation
+  - Test error handling paths
+  - Follow Layer 1 pattern: Use POCOs, test in milliseconds
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+AC-2.1.1: Hebrew/English Command Parsing
+- Hebrew prompt "תוסיף מידות לכל החדרים בקומה 1" correctly parsed to structured action
+- English prompt "Add dimensions to all rooms on Level 1" correctly parsed to same structure
+- Both languages produce identical action schema with same target and parameters
+
+AC-2.1.2: Structured Action Schema
+- Parser returns JSON structure: {operation: "create_dimensions", target: {...}, parameters: {...}}
+- Operation type correctly identified (create_dimensions vs create_tags vs read_elements)
+- Target scope includes: element_type, filter_criteria, level_name (if specified)
+- Parameters include: dimension_style, offset, placement preferences
+
+AC-2.1.3: Scope Recognition
+- "all rooms" → targets all rooms in project
+- "selected rooms" → targets only currently selected rooms
+- "rooms on Level 1" → filters by level name
+- "current view" → limits to elements visible in active view
+- "all rooms except corridors" → supports exclusion filters
+
+AC-2.1.4: Ambiguity Resolution
+- Ambiguous prompts trigger clarifying questions (e.g., "Which rooms do you mean?")
+- Missing level name prompts for clarification
+- Invalid element types are rejected with helpful suggestions
+- Multi-step resolution supported (ask → respond → refine)
+
+AC-2.1.5: Error Handling
+- Invalid/malformed prompts return clear error messages
+- Network failures handled gracefully with retry option
+- Context-missing errors provide guidance (e.g., "No rooms found on Level 2")
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic 2: Intelligent Dimension Automation</title>
+        <section>Story 2.1: Dimension Command Parser</section>
+        <snippet>Enable architects to dimension floor plans through natural language commands. Parser identifies scope (all rooms, selected rooms, specific level, current view) and handles ambiguous prompts with clarifying questions. Hebrew prompts handled with same accuracy as English.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements - Natural Language Input</title>
+        <section>F1.1 - Natural Language Input, NFR-L1: Hebrew Support</section>
+        <snippet>System SHALL accept Hebrew and English text prompts. Parse prompts like "Add internal dimensions to all rooms on Level 1". Hebrew text input (RTL) with efficient tokenization using Claude's Unicode support. Conversational feedback: "I found 12 rooms on Level 1."</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture - Claude API Integration</title>
+        <section>ADR-002: Claude Sonnet 4 for NLU, ADR-007: Operation Allowlist</section>
+        <snippet>Use Claude Sonnet 4.5 model for natural language understanding (fast, accurate balance). Operation allowlist for safety (blocks destructive operations). LLM Action Schema returns JSON with operation, target, and parameters.</snippet>
+      </doc>
+      <doc>
+        <path>CLAUDE.md</path>
+        <title>Development Guide - Testing Pattern</title>
+        <section>Testing Standards, Coding Patterns</section>
+        <snippet>Use NUnit + Moq for unit tests. Tests run in milliseconds for Layer 1 POCOs. Follow Arrange-Act-Assert pattern. POCO pattern critical: Business logic uses POCOs, not Revit types.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>RevitAI.CSharp/Services/ClaudeService.cs</path>
+        <kind>service</kind>
+        <symbol>ClaudeService.ParsePromptAsync</symbol>
+        <lines>38-100</lines>
+        <reason>Existing Claude API integration - should be extended with ParseDimensionCommand method for dimension-specific prompts</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Services/DimensionPlanningService.cs</path>
+        <kind>service</kind>
+        <symbol>DimensionPlanningService</symbol>
+        <lines>1-50</lines>
+        <reason>Layer 1 SIL pattern example - demonstrates pure POCO logic without Revit dependencies. New DimensionCommandParser should follow same pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/RevitAction.cs</path>
+        <kind>model</kind>
+        <symbol>RevitAction, ActionTarget, RevitContext</symbol>
+        <lines>1-75</lines>
+        <reason>Existing action schema - DimensionCommand should extend or align with this structure for consistency</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Domain/RoomInfo.cs</path>
+        <kind>model</kind>
+        <symbol>RoomInfo.CreateRectangular, RoomInfo.CreateLShaped</symbol>
+        <lines>65-125</lines>
+        <reason>POCO pattern with test factory methods - new TargetScope and DimensionParameters POCOs should follow this pattern</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/tests/RevitAI.UnitTests/DimensionPlanningServiceTests.cs</path>
+        <kind>test</kind>
+        <symbol>DimensionPlanningServiceTests</symbol>
+        <lines>1-50</lines>
+        <reason>Layer 1 testing pattern - shows NUnit setup, Arrange-Act-Assert, Category attributes, POCO test data. New tests should follow this structure.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <dotnet>
+        <package name="Anthropic.SDK" version="2.0.0" />
+        <package name="Newtonsoft.Json" version="13.0.3" />
+        <package name="System.Text.Json" version="8.0.5" />
+        <package name="Revit_All_Main_Versions_API_x64" version="2026.0.0" />
+      </dotnet>
+      <testing>
+        <package name="NUnit" version="(from test project)" />
+        <package name="Moq" version="(from test project)" />
+      </testing>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>LAYER 1 SIL PATTERN: DimensionCommandParser must use POCOs (DimensionCommand, TargetScope, DimensionParameters) - NO Revit API types. Enable millisecond unit tests without Revit.</constraint>
+    <constraint>SERVICE SEPARATION: Keep NLU logic (prompt building, response parsing) separate from Revit operations. Parser returns POCOs, not Revit objects.</constraint>
+    <constraint>SCHEMA ALIGNMENT: DimensionCommand should extend or align with existing RevitAction schema (operation, target, params) for consistency.</constraint>
+    <constraint>TESTING PERFORMANCE: Tests must run in &lt;1 second total on Linux (net8.0, not net8.0-windows). Follow existing test patterns with [Category("Unit")] and [Category("Layer1")].</constraint>
+    <constraint>HEBREW SUPPORT: Claude Sonnet 4.5 has good Hebrew support. Use Unicode throughout. Test with actual Hebrew prompts: "תוסיף מידות לכל החדרים בקומה 1".</constraint>
+    <constraint>ERROR HANDLING: All API errors must be caught and converted to user-friendly messages. Network failures should support retry.</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>ClaudeService.ParsePromptAsync</name>
+      <kind>async method</kind>
+      <signature>public async Task&lt;RevitAction&gt; ParsePromptAsync(string prompt, RevitContext context)</signature>
+      <path>RevitAI.CSharp/Services/ClaudeService.cs</path>
+    </interface>
+    <interface>
+      <name>RevitAction</name>
+      <kind>data model</kind>
+      <signature>
+        {
+          "operation": "create_dimensions",
+          "target": {
+            "element_type": "rooms",
+            "filters": { "level": "Level 1" }
+          },
+          "params": {
+            "dimension_style": "default",
+            "offset": 200
+          }
+        }
+      </signature>
+      <path>RevitAI.CSharp/Models/RevitAction.cs</path>
+    </interface>
+    <interface>
+      <name>DimensionPlanningService</name>
+      <kind>pure service (Layer 1)</kind>
+      <signature>public DimensionPlanResult PlanRoomDimensions(IEnumerable&lt;RoomInfo&gt; rooms, IEnumerable&lt;WallInfo&gt; walls)</signature>
+      <path>RevitAI.CSharp/Services/DimensionPlanningService.cs</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Use NUnit framework with Moq for mocking. Tests must target net8.0 (not net8.0-windows) to enable cross-platform testing on Linux.
+      Follow Layer 1 SIL pattern: Use POCOs exclusively - no Revit API dependencies in tests.
+      Performance requirement: All tests must run in under 1 second total (millisecond-range execution).
+      Structure: Arrange-Act-Assert pattern with clear sections.
+      Categories: Mark tests with [Category("Unit")] and [Category("Layer1")] attributes.
+      Test data: Use factory methods (like RoomInfo.CreateRectangular()) for creating POCO test data.
+      Living specifications: Tests should tie PRD examples to executable code.
+    </standards>
+    <locations>
+      RevitAI.CSharp/tests/RevitAI.UnitTests/ - Layer 1 unit tests (POCOs, millisecond execution)
+      RevitAI.CSharp/tests/RevitAI.UITests/ - UI integration tests (requires Revit running)
+
+      New tests for this story:
+      - RevitAI.CSharp/tests/RevitAI.UnitTests/NLU/DimensionCommandParserTests.cs (create new directory)
+    </locations>
+    <ideas>
+      <test id="AC-2.1.1">
+        Test Hebrew command parsing: "תוסיף מידות לכל החדרים בקומה 1" → DimensionCommand with TargetScope.LevelName = "קומה 1"
+        Test English command parsing: "Add dimensions to all rooms on Level 1" → identical DimensionCommand structure
+        Test both languages produce identical action schema (operation, target, parameters)
+      </test>
+      <test id="AC-2.1.2">
+        Test structured schema validation: Verify DimensionCommand has Operation, TargetScope, DimensionParameters
+        Test operation type detection: create_dimensions vs create_tags vs read_elements
+        Test target scope parsing: element_type, filter_criteria, level_name
+        Test parameter extraction: dimension_style, offset, placement preferences
+      </test>
+      <test id="AC-2.1.3">
+        Test scope recognition: "all rooms" → TargetScope.ScopeType = All
+        Test scope recognition: "selected rooms" → TargetScope.ScopeType = Selected
+        Test level filtering: "rooms on Level 1" → TargetScope.LevelName = "Level 1"
+        Test view filtering: "current view" → TargetScope.ScopeType = CurrentView
+        Test exclusion filters: "all rooms except corridors" → TargetScope.ExclusionFilters contains "corridors"
+      </test>
+      <test id="AC-2.1.4">
+        Test ambiguity detection: Prompt missing level name triggers clarification question
+        Test multi-turn resolution: Ask → Respond → Refine cycle
+        Test invalid element type rejection with suggestions
+      </test>
+      <test id="AC-2.1.5">
+        Test malformed prompt error handling: Clear error message returned
+        Test network failure graceful degradation: Mock Anthropic SDK exception
+        Test context-missing error guidance: "No rooms found on Level 2" message
+      </test>
+    </ideas>
+  </tests>
+</story-context>

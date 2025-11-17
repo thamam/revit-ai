@@ -1,0 +1,254 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>3</storyId>
+    <title>Continuous Dimension Chain Generation</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-16</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-3-continuous-dimension-chain.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an architect</asA>
+    <iWant>the system to create continuous dimension chains across room boundaries</iWant>
+    <soThat>I get professionally formatted dimensions without manual placement</soThat>
+    <tasks>
+      1. Design Dimension Chain POCO Model (AC: 2.3.1, 2.3.3)
+      2. Implement DimensionChainPlanner Service (AC: 2.3.1, 2.3.2, 2.3.3)
+      3. Implement Revit Dimension Creator - Layer 2 (AC: 2.3.1, 2.3.4, 2.3.5)
+      4. Add Dimension Style Configuration (AC: 2.3.4)
+      5. Create Unit Tests (AC: All)
+      6. Add LoggingService Integration (AC: All)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC-2.3.1: Dimension Chain Creation - Create continuous dimension chains along each wall using firm's default dimension style with atomic transaction commit
+    AC-2.3.2: Dimension Offset and Alignment - Apply 200mm offset from wall (or firm standard), align parallel to walls using wall normals from Story 2.2
+    AC-2.3.3: Reference Array Generation - Build ReferenceArray correctly ordered with opening gaps handled and corner references included
+    AC-2.3.4: Dimension Style Application - Retrieve firm's dimension type from project/config, apply consistently with text formatting per firm standards
+    AC-2.3.5: Transaction Safety - Wrap all dimension creation in single Revit Transaction with atomic commit/rollback and undo support (Ctrl+Z)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <artifact>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Epic 2: Intelligent Dimension Automation</section>
+        <snippet>Enable architects to dimension floor plans through natural language commands. Validates the complete User→LLM→pyRevit→Revit flow with a high-value feature that saves 3 days of manual work per project.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.3: Continuous Dimension Chain Generation</section>
+        <snippet>Create continuous dimension chains along each wall using Document.Create.NewDimension() API. Apply firm's dimension type from config or project template. Handle dimension creation failures gracefully with transaction rollback.</snippet>
+      </artifact>
+      <artifact>
+        <path>CLAUDE.md</path>
+        <title>Development Guide</title>
+        <section>Revit Transaction Pattern</section>
+        <snippet>All Revit modifications MUST use transactions: using (Transaction trans = new Transaction(doc, "AI: operation")) { trans.Start(); /* operations */ trans.Commit(); }. Support undo via transaction history. Wrap in try/catch for rollback on errors.</snippet>
+      </artifact>
+      <artifact>
+        <path>CLAUDE.md</path>
+        <title>Development Guide</title>
+        <section>Layer 1 SIL Pattern</section>
+        <snippet>POCOs must have NO Revit API dependencies. Test project configured for net8.0 (not net8.0-windows) enables Linux testing. Factory methods for test data (CreateRectangular, CreateLShaped, etc.). Service uses constructor injection for testability.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-2-room-boundary-detection.md</path>
+        <title>Story 2.2: Room Boundary Detection</title>
+        <section>Completion Notes</section>
+        <snippet>Created RoomBoundaryInfo, WallSegmentInfo, OpeningInfo POCOs. RoomBoundaryAnalyzer service provides AnalyzeBoundary() method. Wall normals calculated for dimension offset direction. 19 tests passing in 135ms.</snippet>
+      </artifact>
+      <artifact>
+        <path>docs/stories/2-1-dimension-command-parser.md</path>
+        <title>Story 2.1: Dimension Command Parser</title>
+        <section>Completion Notes</section>
+        <snippet>Created DimensionCommand, TargetScope, DimensionParameters POCOs. DimensionCommandParser service provides ParseCommand() method. Includes offset_mm (200mm default) and dimension_style parameters. 24 tests in 123ms.</snippet>
+      </artifact>
+    </docs>
+    <code>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Domain/RoomBoundaryInfo.cs</path>
+        <kind>POCO</kind>
+        <symbol>RoomBoundaryInfo</symbol>
+        <lines>all</lines>
+        <reason>INPUT to this story - contains analyzed room boundaries with WallSegments, Corners, Openings. Factory methods: CreateRectangular(), CreateLShaped(), CreateWithOpenings()</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Domain/WallSegmentInfo.cs</path>
+        <kind>POCO</kind>
+        <symbol>WallSegmentInfo</symbol>
+        <lines>all</lines>
+        <reason>Contains wall geometry needed for dimension placement: StartPoint, EndPoint, Normal (for offset direction), OrientationDegrees, Length, IsCurved. Factory methods for testing.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Domain/OpeningInfo.cs</path>
+        <kind>POCO</kind>
+        <symbol>OpeningInfo</symbol>
+        <lines>all</lines>
+        <reason>Indicates door/window positions - use to create gaps in dimension chains. Properties: Type, WallSegmentIndex, CenterPosition, Width, Height. Factory methods: CreateDoor(), CreateWindow()</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Services/RoomBoundaryAnalyzer.cs</path>
+        <kind>Service</kind>
+        <symbol>RoomBoundaryAnalyzer</symbol>
+        <lines>all</lines>
+        <reason>Provides AnalyzeBoundary(RoomInfo) → RoomBoundaryInfo method. This story consumes its output. Also provides CalculateWallNormal(), IdentifyCorners(), FilterRoomSeparators() helper methods.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Commands/DimensionCommand.cs</path>
+        <kind>POCO</kind>
+        <symbol>DimensionCommand</symbol>
+        <lines>all</lines>
+        <reason>Contains dimension parameters: Operation, Target (scope), Parameters (offset_mm, dimension_style). Use DimensionParameters.offset_mm for dimension offset from wall.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Commands/DimensionParameters.cs</path>
+        <kind>POCO</kind>
+        <symbol>DimensionParameters</symbol>
+        <lines>all</lines>
+        <reason>Configuration for dimension creation: dimension_style, offset_mm (200mm default), placement. Use these values when planning dimension chains.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Services/LoggingService.cs</path>
+        <kind>Service</kind>
+        <symbol>LoggingService</symbol>
+        <lines>all</lines>
+        <reason>Singleton logging service. Use for dimension planning logs. Methods: Info(), Warning(), Error(), Debug(), LogOperation(). Constructor injection pattern: DimensionChainPlanner(LoggingService logger = null)</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/Models/Domain/RoomInfo.cs</path>
+        <kind>POCO</kind>
+        <symbol>RoomInfo</symbol>
+        <lines>all</lines>
+        <reason>Basic room data structure used throughout. Has CreateRectangular(width, length, name) factory method for testing.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/tests/RevitAI.UnitTests/Services/RoomBoundaryAnalyzerTests.cs</path>
+        <kind>Test</kind>
+        <symbol>RoomBoundaryAnalyzerTests</symbol>
+        <lines>all</lines>
+        <reason>Example of Layer 1 testing pattern: 19 tests using NUnit, factory methods, Arrange-Act-Assert pattern, [Category("Unit")], [Category("Layer1")]. Follow this pattern for DimensionChainPlannerTests.</reason>
+      </artifact>
+      <artifact>
+        <path>RevitAI.CSharp/tests/RevitAI.UnitTests/RevitAI.UnitTests.csproj</path>
+        <kind>Project Configuration</kind>
+        <symbol>RevitAI.UnitTests.csproj</symbol>
+        <lines>28-48</lines>
+        <reason>Shows Layer 1 SIL pattern: Compile Include for POCOs and services without Revit dependencies. Add new DimensionChainInfo.cs and DimensionChainPlanner.cs here.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <dotnet>
+        <package name="NUnit" version="3.14.0" />
+        <package name="NUnit3TestAdapter" version="4.5.0" />
+        <package name="Moq" version="4.20.70" />
+        <package name="Anthropic.SDK" version="2.0.0" />
+        <framework>net8.0</framework>
+      </dotnet>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Layer 1 SIL Pattern: DimensionChainInfo POCO must have NO Revit API dependencies. Use primitive types and tuples only.
+    - Service Separation: DimensionChainPlanner (Layer 1 pure logic), RevitDimensionCreator (Layer 2 Revit API)
+    - Testing: Must run on Linux in net8.0 (not net8.0-windows). Target < 500ms for all tests.
+    - Transaction Pattern: All Revit modifications wrapped in Transaction with atomic commit/rollback
+    - Factory Methods: DimensionChainInfo.CreateSimple(), CreateWithOpenings(), CreateLShaped() for test data
+    - Constructor Injection: DimensionChainPlanner(LoggingService logger = null) for testability
+    - Namespace: RevitAI.Models.Domain for POCOs, RevitAI.Services for Layer 1 services, RevitAI.Services.Revit for Layer 2
+    - Avoid regressions: All 52 existing tests must continue to pass after changes
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>DimensionChainPlanner.PlanDimensions</name>
+      <kind>Method</kind>
+      <signature>List&lt;DimensionChainInfo&gt; PlanDimensions(RoomBoundaryInfo boundary, DimensionParameters parameters)</signature>
+      <path>To be created in RevitAI.CSharp/Services/DimensionChainPlanner.cs</path>
+    </interface>
+    <interface>
+      <name>RoomBoundaryAnalyzer.AnalyzeBoundary</name>
+      <kind>Method</kind>
+      <signature>RoomBoundaryInfo AnalyzeBoundary(RoomInfo roomInfo)</signature>
+      <path>RevitAI.CSharp/Services/RoomBoundaryAnalyzer.cs</path>
+    </interface>
+    <interface>
+      <name>LoggingService.Instance</name>
+      <kind>Singleton Property</kind>
+      <signature>static LoggingService Instance { get; }</signature>
+      <path>RevitAI.CSharp/Services/LoggingService.cs</path>
+    </interface>
+    <interface>
+      <name>Document.Create.NewDimension</name>
+      <kind>Revit API Method</kind>
+      <signature>Dimension NewDimension(View view, Line line, ReferenceArray references)</signature>
+      <path>Revit API - use in Layer 2 (RevitDimensionCreator)</path>
+    </interface>
+    <interface>
+      <name>Transaction (Revit API)</name>
+      <kind>Revit API Class</kind>
+      <signature>using (Transaction trans = new Transaction(doc, "name")) { trans.Start(); /* ops */ trans.Commit(); }</signature>
+      <path>Revit API - wrap all dimension creation in Layer 2</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use NUnit 3.14.0 + Moq 4.20.70 for Layer 1 tests. Follow Arrange-Act-Assert pattern. Use [TestFixture], [Test], [SetUp] attributes. Categorize with [Category("Unit")], [Category("Layer1")]. Tests must run on Linux in net8.0 framework (not net8.0-windows). Target sub-second performance (< 500ms total). Use factory methods for test data instead of complex mocking. Previous stories achieved 123ms (Story 2.1) and 135ms (Story 2.2) for 19-24 tests.
+    </standards>
+    <locations>
+      RevitAI.CSharp/tests/RevitAI.UnitTests/ - All unit tests
+      RevitAI.CSharp/tests/RevitAI.UnitTests/Services/ - Service tests
+      RevitAI.CSharp/tests/RevitAI.UnitTests/NLU/ - NLU parser tests
+    </locations>
+    <ideas>
+      <test ac="AC-2.3.1">
+        - Test PlanDimensions() with rectangular room returns 4 dimension chains (one per wall)
+        - Test dimension chains have correct start/end references from wall segments
+        - Test dimension style parameter is preserved in DimensionChainInfo output
+      </test>
+      <test ac="AC-2.3.2">
+        - Test offset vector calculated correctly from wall normal (perpendicular direction)
+        - Test offset magnitude matches DimensionParameters.offset_mm (200mm default)
+        - Test offset direction points outward from room (positive normal direction)
+        - Test dimension alignment is parallel to wall (uses wall orientation)
+      </test>
+      <test ac="AC-2.3.3">
+        - Test reference array generation from wall segments (start/end points)
+        - Test reference ordering is correct (left-to-right for horizontal, bottom-to-top for vertical)
+        - Test opening gaps: dimensions skip references near doors/windows
+        - Test corner references included at wall junctions (from RoomBoundaryInfo.Corners)
+      </test>
+      <test ac="AC-2.3.4">
+        - Test dimension style retrieved from DimensionParameters
+        - Test fallback to default if style not specified
+        - (Layer 2 only) Test dimension type exists in project before use
+      </test>
+      <test ac="AC-2.3.5">
+        - (Layer 2 only) Test all dimensions created in single transaction
+        - (Layer 2 only) Test transaction rollback on dimension creation failure
+        - (Layer 2 only) Test undo capability after transaction commit
+      </test>
+      <test general="Factory Methods">
+        - Test DimensionChainInfo.CreateSimple() creates valid test data
+        - Test DimensionChainInfo.CreateWithOpenings() includes gaps
+        - Test DimensionChainInfo.CreateLShaped() handles multi-segment boundaries
+      </test>
+      <test general="Error Handling">
+        - Test PlanDimensions() with null boundary throws ArgumentNullException
+        - Test PlanDimensions() with null parameters throws ArgumentNullException
+        - Test PlanDimensions() with empty wall segments returns empty list
+      </test>
+      <test general="Integration">
+        - Test end-to-end: RoomInfo → RoomBoundaryAnalyzer → DimensionChainPlanner → DimensionChainInfo list
+        - Test curved walls flagged in input are skipped or handled specially
+        - Test room separators already filtered by RoomBoundaryAnalyzer
+      </test>
+    </ideas>
+  </tests>
+</story-context>

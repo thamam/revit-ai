@@ -26,6 +26,9 @@ ENV/
 env/
 .venv
 
+#Revit filts
+*.rvt
+
 # PyCharm
 .idea/
 

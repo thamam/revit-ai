@@ -14,7 +14,7 @@ namespace RevitAI.Services
     /// Claude API Service
     /// Handles communication with Claude AI for natural language understanding
     /// </summary>
-    public class ClaudeService
+    public class ClaudeService : IClaudeService
     {
         private readonly AnthropicClient _client;
         private readonly string _model;
@@ -87,6 +87,110 @@ Parse this command and return a JSON action following the schema defined in the 
             var action = JsonSerializer.Deserialize<RevitAction>(jsonText);
 
             return action ?? throw new InvalidOperationException("Failed to parse action from Claude response");
+        }
+
+        /// <summary>
+        /// Send a message to Claude with a system prompt and user message.
+        /// Returns the raw text response.
+        /// </summary>
+        /// <param name="systemPrompt">System prompt defining Claude's behavior</param>
+        /// <param name="userMessage">User's message/query</param>
+        /// <param name="maxRetries">Number of retries for transient failures (default: 3)</param>
+        /// <returns>Claude's response text</returns>
+        public async Task<string> SendMessageAsync(
+            string systemPrompt,
+            string userMessage,
+            int maxRetries = 3)
+        {
+            if (string.IsNullOrWhiteSpace(systemPrompt))
+            {
+                throw new ArgumentException("System prompt cannot be null or empty", nameof(systemPrompt));
+            }
+
+            if (string.IsNullOrWhiteSpace(userMessage))
+            {
+                throw new ArgumentException("User message cannot be null or empty", nameof(userMessage));
+            }
+
+            int attemptCount = 0;
+            Exception? lastException = null;
+
+            while (attemptCount < maxRetries)
+            {
+                try
+                {
+                    attemptCount++;
+
+                    var messages = new List<Message>
+                    {
+                        new Message
+                        {
+                            Role = RoleType.User,
+                            Content = userMessage
+                        }
+                    };
+
+                    var parameters = new MessageParameters
+                    {
+                        Model = _model,
+                        MaxTokens = _maxTokens,
+                        SystemMessage = systemPrompt,
+                        Messages = messages,
+                        Stream = false
+                    };
+
+                    var response = await _client.Messages.GetClaudeMessageAsync(parameters);
+
+                    if (response == null || response.Content == null || response.Content.Count == 0)
+                    {
+                        throw new InvalidOperationException("Claude returned empty response");
+                    }
+
+                    // Extract text and clean up any code fences
+                    string responseText = response.Content[0].Text ?? string.Empty;
+                    return ExtractJsonFromResponse(responseText);
+                }
+                catch (Exception ex) when (attemptCount < maxRetries && IsTransientError(ex))
+                {
+                    // Save exception and retry
+                    lastException = ex;
+
+                    // Exponential backoff: wait 1s, 2s, 4s, etc.
+                    int delayMs = (int)Math.Pow(2, attemptCount - 1) * 1000;
+                    await Task.Delay(delayMs);
+
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    // Non-retryable error or max retries exceeded
+                    throw new InvalidOperationException(
+                        $"Claude API call failed after {attemptCount} attempts: {ex.Message}",
+                        ex
+                    );
+                }
+            }
+
+            // Max retries exceeded
+            throw new InvalidOperationException(
+                $"Claude API call failed after {maxRetries} retry attempts",
+                lastException
+            );
+        }
+
+        /// <summary>
+        /// Determines if an exception is a transient error that should be retried.
+        /// </summary>
+        private bool IsTransientError(Exception ex)
+        {
+            // Network errors, timeouts, rate limits are transient
+            var message = ex.Message.ToLower();
+            return message.Contains("timeout") ||
+                   message.Contains("network") ||
+                   message.Contains("rate limit") ||
+                   message.Contains("429") ||
+                   message.Contains("503") ||
+                   message.Contains("504");
         }
 
         /// <summary>

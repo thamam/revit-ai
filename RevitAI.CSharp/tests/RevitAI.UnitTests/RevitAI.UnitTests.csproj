@@ -16,6 +16,7 @@
     <PackageReference Include="NUnit.Analyzers" Version="3.9.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Anthropic.SDK" Version="2.0.0" />
   </ItemGroup>
 
   <!--
@@ -29,9 +30,28 @@
     <Compile Include="..\..\Models\Domain\RoomInfo.cs" Link="Domain\RoomInfo.cs" />
     <Compile Include="..\..\Models\Domain\WallInfo.cs" Link="Domain\WallInfo.cs" />
     <Compile Include="..\..\Models\Domain\DimensionInfo.cs" Link="Domain\DimensionInfo.cs" />
+    <Compile Include="..\..\Models\Domain\RoomBoundaryInfo.cs" Link="Domain\RoomBoundaryInfo.cs" />
+    <Compile Include="..\..\Models\Domain\WallSegmentInfo.cs" Link="Domain\WallSegmentInfo.cs" />
+    <Compile Include="..\..\Models\Domain\OpeningInfo.cs" Link="Domain\OpeningInfo.cs" />
+    <Compile Include="..\..\Models\Domain\DimensionChainInfo.cs" Link="Domain\DimensionChainInfo.cs" />
+
+    <!-- POCO Command Models - Pure C#, no dependencies -->
+    <Compile Include="..\..\Models\Commands\DimensionCommand.cs" Link="Commands\DimensionCommand.cs" />
+    <Compile Include="..\..\Models\Commands\TargetScope.cs" Link="Commands\TargetScope.cs" />
+    <Compile Include="..\..\Models\Commands\DimensionParameters.cs" Link="Commands\DimensionParameters.cs" />
 
     <!-- Pure Business Logic Services - No Revit dependencies -->
     <Compile Include="..\..\Services\DimensionPlanningService.cs" Link="Services\DimensionPlanningService.cs" />
+    <Compile Include="..\..\Services\RoomBoundaryAnalyzer.cs" Link="Services\RoomBoundaryAnalyzer.cs" />
+    <Compile Include="..\..\Services\DimensionChainPlanner.cs" Link="Services\DimensionChainPlanner.cs" />
+    <Compile Include="..\..\Services\LoggingService.cs" Link="Services\LoggingService.cs" />
+
+    <!-- NLU Services - Mockable Claude integration (for Layer 1 testing with mocks) -->
+    <Compile Include="..\..\Services\NLU\DimensionCommandParser.cs" Link="NLU\DimensionCommandParser.cs" />
+    <Compile Include="..\..\Services\NLU\PromptTemplates.cs" Link="NLU\PromptTemplates.cs" />
+    <Compile Include="..\..\Services\IClaudeService.cs" Link="Services\IClaudeService.cs" />
+    <Compile Include="..\..\Services\ClaudeService.cs" Link="Services\ClaudeService.cs" />
+    <Compile Include="..\..\Models\RevitAction.cs" Link="Models\RevitAction.cs" />
   </ItemGroup>
 
   <!--

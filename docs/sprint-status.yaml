@@ -18,8 +18,9 @@ development_status:
 
   # Epic 2: Intelligent Dimension Automation (IN PROGRESS)
   epic-2: in-progress
-  2-1-dimension-command-parser: done
-  2-2-room-boundary-detection: done
-  2-3-continuous-dimension-chain: done
+  2-1-dimension-command-parser: done  # Layer 1 complete
+  2-2-room-boundary-detection: done  # Layer 1 complete
+  2-3-continuous-dimension-chain: done  # Layer 1 complete
   2-4-dimension-preview-confirmation: backlog
   2-5-edge-case-handling: backlog
+  2-6-layer-2-integration: drafted  # NEW: Consolidates Layer 2 from Stories 2.1-2.3

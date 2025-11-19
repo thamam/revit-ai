@@ -19,6 +19,11 @@
     <None Remove="tests\**" />
   </ItemGroup>
 
+  <!-- Exclude macro files (designed for Revit Macro Manager, not external add-in) -->
+  <ItemGroup>
+    <Compile Remove="Tools\DiscoveryMacro.cs" />
+  </ItemGroup>
+
   <!-- Revit API References -->
   <ItemGroup>
     <PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2026.0.0" />

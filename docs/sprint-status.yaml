@@ -1,5 +1,5 @@
 # Sprint Status Tracking
-# Generated: 2025-11-15
+# Updated: 2025-11-20 (Research-Informed Refactoring)
 # Project: revit-ai
 
 # STATUS DEFINITIONS:
@@ -9,18 +9,272 @@
 # - review: Implementation complete, awaiting code review
 # - done: Story fully complete and validated
 
-development_status:
-  # Epic 1: Foundation (COMPLETE)
-  epic-1: done
+# EPIC STRUCTURE (Research-Informed):
+# Epic 1: Foundation & Core Infrastructure - COMPLETE
+# Epic 2: Intelligent Automation (Refactored)
+#   Phase 1: Auto-Tagging (Stories 2.1-2.3) - NEW PRIORITY
+#   Phase 2: Dimension Automation (Stories 2.4-2.6) - DEFERRED
+#   Phase 3: MCP Compatibility (Story 2.7) - STRATEGIC ENABLER
 
-  # Story 0: SIL Foundation (Pre-Epic 2 Infrastructure)
+development_status:
+  # ====================================================================
+  # EPIC 1: Foundation & Core Infrastructure
+  # ====================================================================
+  epic-1: done
+  1-1-claude-api-integration: done
+  1-2-safety-validation-framework: done
+  1-3-external-event-pattern: done
+  1-4-basic-ui-scaffold: done
+  1-5-preview-confirm-ux: done
+  1-6-logging-infrastructure: done
+  1-7-configuration-system: done
+
+  # ====================================================================
+  # STORY 0: SIL Foundation (Pre-Epic 2 Infrastructure)
+  # ====================================================================
+  # Purpose: Establish Separation of Interface Layers architecture
+  # Status: In progress (Layer 1 dimension logic complete, needs refactor for tagging)
+  # Next: Adapt SIL patterns for auto-tagging before continuing dimensions
   0-0-sil-foundation: in-progress
 
-  # Epic 2: Intelligent Dimension Automation (IN PROGRESS)
+  # ====================================================================
+  # EPIC 2: Intelligent Automation (REFACTORED - Research-Informed)
+  # ====================================================================
+  # Research Date: 2025-11-20
+  # Strategic Pivot: Auto-tagging prioritized over dimension automation
+  # Rationale: Lower risk, higher user demand, faster validation
+  # See: docs/epic2-refactored.md for full details
   epic-2: in-progress
-  2-1-dimension-command-parser: done  # Layer 1 complete
-  2-2-room-boundary-detection: done  # Layer 1 complete
-  2-3-continuous-dimension-chain: done  # Layer 1 complete
-  2-4-dimension-preview-confirmation: backlog
-  2-5-edge-case-handling: backlog
-  2-6-layer-2-integration: drafted  # NEW: Consolidates Layer 2 from Stories 2.1-2.3
+
+  # --------------------------------------------------------------------
+  # PHASE 1: Auto-Tagging Implementation (NEW PRIORITY)
+  # --------------------------------------------------------------------
+  # Research Rationale:
+  # - User Pain Point #1: "Users spend days manually tagging" (Task 2)
+  # - Risk Mitigation: "Read-Only/Annotation tasks = lower blast radius" (Task 3)
+  # - Market Validation: All 3 commercial products prioritize tagging
+  # - Trust Building: Demonstrate value before higher-risk operations
+
+  # Story 2.1: Auto-Tagging Command Parser & Safety Validation
+  # As an architect, I want to parse natural language tagging prompts
+  # Acceptance: Hebrew/English parsing, scope validation, clarification questions
+  # Estimated: 3-5 days
+  2-1-auto-tag-parser: ready-for-dev
+
+  # Story 2.2: Tag Placement Engine with Spatial Intelligence
+  # As a developer, I want intelligent tag placement with collision avoidance
+  # Acceptance: 95%+ collision-free placement, 10-attempt algorithm, leader lines
+  # Estimated: 5-7 days
+  2-2-tag-placement-engine: drafted
+
+  # Story 2.3: Auto-Tagging Execution with Preview & Audit Trail
+  # As an architect, I want preview/confirm workflow for tag creation
+  # Acceptance: Visual preview, transaction safety, audit log, undo support
+  # Estimated: 4-6 days
+  2-3-tag-execution-preview: drafted
+
+  # --------------------------------------------------------------------
+  # PHASE 2: Dimension Automation (DEFERRED FROM ORIGINAL)
+  # --------------------------------------------------------------------
+  # Note: Original Stories 2.1-2.3 (dimension parsing/generation) moved here
+  # Discovery work from nelly machine (4 test rooms, 45 styles) remains valid
+  # Will implement after auto-tagging to leverage patterns and build trust
+
+  # Story 2.4: Dimension Command Parser (NLU for Dimensions)
+  # Original Story 2.1 - now deferred to Phase 2
+  # Layer 1 complete (from nelly machine), needs SIL refactor
+  # Status: Parked until Phase 2
+  2-4-dimension-parser: done  # Layer 1 from discovery phase
+
+  # Story 2.5: Room Boundary Detection & Dimension Chain Generation
+  # Original Story 2.2-2.3 combined - now deferred to Phase 2
+  # Layer 1 complete (from nelly machine), needs SIL refactor
+  # Status: Parked until Phase 2
+  2-5-dimension-generation: done  # Layer 1 from discovery phase
+
+  # Story 2.6: Dimension Preview & Hybrid LLM+Solver
+  # Original Story 2.4-2.5 combined - now deferred to Phase 2
+  # Research insight: Use hybrid LLM (intent) + solver (placement) approach
+  # Status: Not started, awaits Phase 2
+  2-6-dimension-preview-hybrid: backlog
+
+  # --------------------------------------------------------------------
+  # PHASE 3: MCP Compatibility Layer (STRATEGIC ENABLER)
+  # --------------------------------------------------------------------
+  # Research: MCP is emerging standard (49 GitHub stars for revit-mcp-python)
+  # Positions RevitAI as MCP-native for future ecosystem integration
+  # Implements after tagging + dimensions to expose completed operations
+
+  # Story 2.7: MCP Compatibility Layer
+  # As a developer, I want MCP JSON-RPC interface for external tool integration
+  # Acceptance: HTTP server on localhost:48884, tool registry, error handling
+  # Estimated: 5-7 days
+  # Prerequisites: Stories 2.1-2.6 complete (operations to expose)
+  2-7-mcp-compatibility: backlog
+
+# ====================================================================
+# RESEARCH FINDINGS (2025-11-20)
+# ====================================================================
+# Three research tasks inform this sprint plan:
+#
+# Task 1: MCP Server Landscape Analysis
+# - Identified MCP as emerging standard
+# - 3 architectural nodes: Live (us), File-Based, Platform-Hub
+# - Operations inventory: auto-tagging #1 priority
+#
+# Task 2: PyRevit+LLM Integration Analysis
+# - 14 findings: 3 commercial, 2 open-source, 4 academic
+# - Gap: No open-source with MCP+RAG hybrid + local LLM
+# - User pain: "Days spent manually tagging"
+#
+# Task 3: Revit API Testing Strategies
+# - SIL architecture solves inverted pyramid problem
+# - 85-query benchmark (80% accuracy target)
+# - Studio Tema case: 20,000 ILS insurance, sandbox mandate
+#
+# See docs/research/ for full reports
+
+# ====================================================================
+# SPRINT PRIORITIES (Current)
+# ====================================================================
+priorities:
+  next_sprint:
+    - story: 2-1-auto-tag-parser
+      priority: P0 - Critical Path
+      reason: Unblocks Phase 1, market-validated priority
+      estimated_days: 3-5
+
+    - story: 2-2-tag-placement-engine
+      priority: P0 - Critical Path
+      reason: Core tagging functionality
+      estimated_days: 5-7
+
+    - story: 2-3-tag-execution-preview
+      priority: P0 - Critical Path
+      reason: Completes auto-tagging MVP
+      estimated_days: 4-6
+
+  future_sprints:
+    - phase: Dimension Automation (Phase 2)
+      stories: [2-4-dimension-parser, 2-5-dimension-generation, 2-6-dimension-preview-hybrid]
+      start_after: Phase 1 complete + user validation
+      estimated_weeks: 3-4
+
+    - phase: MCP Integration (Phase 3)
+      stories: [2-7-mcp-compatibility]
+      start_after: Phase 2 complete
+      estimated_weeks: 1
+
+  technical_debt:
+    - item: Refactor Story 0 SIL foundation for tagging patterns
+      priority: P1 - Before Story 2.2
+      reason: Tag placement needs same Layer 1/2 separation as dimensions
+
+    - item: Create 85-query benchmark dataset
+      priority: P1 - Parallel with Story 2.1
+      reason: Enables objective quality tracking from day one
+
+    - item: Set up CI/CD with GitHub Actions
+      priority: P2 - Before Story 2.3
+      reason: Automated testing for preview/execution workflow
+
+# ====================================================================
+# ACCEPTANCE CRITERIA TRACKING
+# ====================================================================
+# Stories marked "done" from discovery phase (2.4-2.5) are Layer 1 only
+# They need Layer 2 (Revit API integration) when we return to Phase 2
+# Current focus: Complete Phase 1 (auto-tagging) end-to-end (Layer 1-2-3)
+
+story_completion_notes:
+  2-4-dimension-parser:
+    layer_1: done  # Pure logic, Claude parsing, safety validation
+    layer_2: not_started  # Revit API integration deferred
+    layer_3: not_started  # E2E acceptance tests deferred
+
+  2-5-dimension-generation:
+    layer_1: done  # Room boundary algorithms, dimension placement logic
+    layer_2: not_started  # Revit API calls, transaction handling deferred
+    layer_3: not_started  # Full workflow testing deferred
+
+# ====================================================================
+# VELOCITY TRACKING
+# ====================================================================
+velocity:
+  epic_1:
+    planned_days: 35
+    actual_days: 42  # 7 stories * 6 days average
+    completion_date: 2025-11-15
+    notes: C# SDK switch added ~7 days but improved architecture
+
+  story_0:
+    planned_days: 14
+    actual_days_to_date: 10  # In progress
+    notes: SIL foundation, Layer 1 dimension logic complete
+
+  epic_2_phase_1_estimate:
+    stories: [2-1, 2-2, 2-3]
+    planned_days: 14-18  # 3-5 + 5-7 + 4-6
+    sprint_weeks: 2-3
+    confidence: medium  # First time implementing tagging, may need adjustments
+
+# ====================================================================
+# BLOCKERS & DEPENDENCIES
+# ====================================================================
+blockers:
+  none_currently: true
+
+dependencies:
+  2-2-tag-placement-engine:
+    depends_on: [2-1-auto-tag-parser]
+    reason: Needs parsed RevitAction structure
+
+  2-3-tag-execution-preview:
+    depends_on: [2-2-tag-placement-engine, 1-5-preview-confirm-ux]
+    reason: Needs placement logic + preview dialog pattern
+
+  2-7-mcp-compatibility:
+    depends_on: [2-1, 2-2, 2-3, 2-4, 2-5, 2-6]
+    reason: Must have operations to expose via MCP
+
+# ====================================================================
+# NEXT STEPS (Immediate)
+# ====================================================================
+next_actions:
+  - action: Begin Story 2.1 (Auto-Tag Parser)
+    owner: Dev Team
+    deadline: Start immediately
+
+  - action: Create benchmark queries (auto-tagging subset)
+    owner: QA/Dev
+    deadline: Parallel with Story 2.1
+    note: Start with 30 queries from docs/testing-framework.md
+
+  - action: Set up unit test infrastructure
+    owner: Dev
+    deadline: Before Story 2.2
+    note: Follow SIL architecture, target 80% Layer 1 coverage
+
+  - action: Update epics.md with refactored structure
+    owner: PM/Dev
+    deadline: Before sprint planning meeting
+    note: Align with docs/epic2-refactored.md
+
+# ====================================================================
+# CHANGELOG
+# ====================================================================
+changelog:
+  - date: 2025-11-20
+    change: Major refactoring based on research findings
+    details:
+      - Moved auto-tagging to Phase 1 (Stories 2.1-2.3 NEW)
+      - Deferred dimension automation to Phase 2 (Stories 2.4-2.6)
+      - Added MCP compatibility as Phase 3 (Story 2.7 NEW)
+      - Updated story estimates and priorities
+      - Added research rationale and citations
+
+  - date: 2025-11-15
+    change: Initial sprint status file created
+    details:
+      - Epic 1 marked complete
+      - Story 0 in progress
+      - Original Epic 2 structure (dimension-first)

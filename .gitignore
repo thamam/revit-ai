@@ -26,9 +26,6 @@ ENV/
 env/
 .venv
 
-#Revit filts
-*.rvt
-
 # PyCharm
 .idea/
 
@@ -41,7 +38,13 @@ env/
 .coverage
 htmlcov/
 
-# Revit
+# Revit project files (large binary files - store in samples/ locally)
+*.rvt
+*.rfa
+*.rte
+*.rft
+
+# Revit backup files
 *.rvt.bak
 *.rfa.bak
 *.rte.bak

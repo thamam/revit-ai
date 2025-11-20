@@ -67,6 +67,7 @@ desktop.ini
 *.tmp
 *.temp
 ~$*
+nul
 
 # C# / .NET
 bin/

@@ -889,12 +889,383 @@ Both stages completed successfully. Epic 1 is 100% complete with all 7 stories i
 
 ---
 
+### ADR-009: Model Context Protocol (MCP) Compatibility Layer
+
+**Decision**: Implement MCP-compatible JSON-RPC interface wrapping the existing ClaudeService and RevitEventHandler
+
+**Context**:
+Research findings (Task 1: MCP Server Landscape Analysis, 2025-11-20) identified Model Context Protocol as the emerging standard for AI+Revit integration. The `revit-mcp-python` project demonstrates successful implementation with 49 GitHub stars and active development. Three architectural patterns exist: Live Session Agent (Node A), File-Based (Node B), and Platform-Hub (Node C). RevitAI's C# architecture aligns with Node A (Live Session Agent).
+
+**Rationale**:
+- **Future-proofing**: MCP enables compatibility with any MCP-compatible host (Claude Desktop, Cursor, Windsurf, etc.)
+- **Standardization**: Moves from proprietary API to open standard created by Anthropic
+- **Testability**: JSON-RPC interface enables mocking without Revit (send JSON request, validate JSON response)
+- **Tool abstraction**: Separates "what operations are available" (MCP tool registry) from "how they execute" (internal C# implementation)
+- **Market positioning**: Differentiates RevitAI as MCP-native from day one vs. adding MCP later
+
+**Implementation Strategy**:
+```csharp
+// New MCP layer wraps existing services
+public class MCPServer {
+    private ClaudeService _claudeService;
+    private RevitEventHandler _eventHandler;
+
+    // MCP tool registry
+    public IEnumerable<MCPTool> GetTools() {
+        return new[] {
+            new MCPTool("get_revit_model_info", "Retrieves project metadata"),
+            new MCPTool("list_levels", "Returns all levels and elevations"),
+            new MCPTool("create_dimensions", "Creates dimension chains"),
+            // ... expose existing operations as MCP tools
+        };
+    }
+
+    // JSON-RPC handler
+    public async Task<MCPResponse> HandleRequest(MCPRequest request) {
+        // Validate + route to existing services
+        var result = await _eventHandler.ExecuteAsync(request.Arguments);
+        return new MCPResponse { Result = result };
+    }
+}
+```
+
+**Architectural Pattern** (from research):
+RevitAI implements the **"Sidecar" pattern** where MCP server runs inside Revit process via ExternalEvent, matching `revit-mcp-python` architecture. This provides "god-mode access" to active document with zero latency.
+
+**Trade-offs**:
+- **Threading complexity**: Must handle JSON-RPC requests on background thread, marshal to main thread via ExternalEvent
+- **Additional abstraction**: Adds layer between user and existing C# services
+- **Versioning burden**: MCP protocol changes require compatibility updates
+
+**Alternatives Considered**:
+1. **Stay proprietary**: Keep direct Claude API integration only
+   - Rejected: Limits future extensibility, locks into single LLM provider
+2. **File-based MCP** (Node B pattern): Operate on exported IFC files
+   - Rejected: Research shows "round-trip failure" - semantic degradation makes this unsuitable for detailed design work
+3. **Platform-Hub** (Node C pattern via Speckle): Cloud-based data hub
+   - Deferred: Valuable for future, but adds deployment complexity for MVP
+
+**Dependencies**:
+- Existing Epic 1 infrastructure (ExternalEvent, ClaudeService, SafetyValidator)
+- No new external libraries required (implement lightweight JSON-RPC handler)
+
+**Future Work**:
+- Publish RevitAI as standalone MCP server for other tools to consume
+- Add server-sent events (SSE) transport for real-time notifications
+- Expose preview graphics as MCP resources
+
+**Status**: Accepted (Pending Implementation in Epic 1.5 or Epic 2)
+
+**Research Citation**: Task 1 MCP Server Landscape Analysis identified this as strategic recommendation: "The winning architecture will likely be a hybrid of Node A (Live) and Node C (Platform)."
+
+---
+
+### ADR-010: RAG Hybrid Architecture for Flexible Command Execution
+
+**Decision**: Implement hybrid architecture combining MCP hardened tools (safe, predefined operations) with RAG-powered code generation (flexible, rare operations)
+
+**Context**:
+Research findings (Task 2: PyRevit+LLM Integration Analysis, 2025-11-20) revealed two competing approaches:
+1. **MCP-only** (`revit-mcp-python`): 13 working tools, limited to predefined operations
+2. **RAG-only** (`RevitGeminiRAG`): Unlimited flexibility via code generation, but "still rough" with reliability concerns
+
+Neither approach alone addresses all use cases. MCP is reliable but limited; RAG is flexible but risky.
+
+**Rationale**:
+- **Best of both worlds**: Reliable hardened tools for 80% of operations, flexible code generation for 20% edge cases
+- **Fail-safe gracefully**: If MCP tool doesn't exist for user's request, fall back to RAG instead of outright failure
+- **User trust**: Show generated code before execution (human-in-loop approval)
+- **Learning system**: Generated code that works can be promoted to hardened MCP tool
+- **Competitive advantage**: Research gap analysis shows "Nobody has combined both approaches"
+
+**Implementation Strategy**:
+```csharp
+public class HybridCommandRouter {
+    private MCPServer _mcpServer;
+    private RAGCodeGenerator _ragGenerator;
+    private IVectorDatabase _revitApiDocs;
+
+    public async Task<CommandResult> ExecuteCommand(string userPrompt) {
+        // Step 1: Parse intent
+        var intent = await _claudeService.ParseIntentAsync(userPrompt);
+
+        // Step 2: Check if MCP tool exists
+        var mcpTool = _mcpServer.FindTool(intent.Operation);
+
+        if (mcpTool != null) {
+            // Happy path: Use hardened tool
+            return await mcpTool.Execute(intent.Arguments);
+        } else {
+            // Fallback path: RAG code generation
+            var context = await _revitApiDocs.RetrieveRelevantDocs(intent);
+            var code = await _ragGenerator.GenerateCode(intent, context);
+
+            // CRITICAL: Show code to user for approval
+            bool approved = await ShowCodeReviewDialog(code);
+            if (!approved) return CommandResult.Cancelled();
+
+            // Execute with error handling
+            try {
+                return await ExecuteGeneratedCode(code);
+            } catch (Exception ex) {
+                // Self-healing: Send error back to LLM for retry
+                var fixedCode = await _ragGenerator.FixCode(code, ex);
+                return await ExecuteGeneratedCode(fixedCode);
+            }
+        }
+    }
+}
+```
+
+**RAG Architecture** (8-step workflow from RevitGeminiRAG research):
+1. User enters command in natural language
+2. Plugin searches Revit API knowledge base (vector DB)
+3. Build detailed prompt (instructions + context + command)
+4. Send to Claude/Gemini
+5. LLM generates C# code
+6. **Show code to user for approval** (human-in-loop)
+7. If approved, execute code in Revit
+8. If error, send error back to AI for retry
+
+**Knowledge Base Construction**:
+- Embed Revit API documentation (HTML → Markdown → chunks → embeddings)
+- Use `text-embedding-3-small` or Claude embeddings
+- Store in local SQLite vector DB (no cloud dependency)
+- Pre-build during installation: `revit-api-docs.db` (~200MB)
+
+**Safety Mechanisms**:
+1. **Sandboxing**: Generated code runs in restricted scope (no file I/O, no network access)
+2. **Preview requirement**: Code review dialog shows:
+   - Generated C# code with syntax highlighting
+   - Explanation in plain language ("This will create 12 dimension chains...")
+   - Estimated risk level (Read-only = Green, Write = Yellow, Delete = Red)
+3. **Audit trail**: All generated code logged for compliance review
+4. **Timeout**: Maximum 30-second execution time
+
+**When to Use Each Approach**:
+
+**MCP Tools** (80% of operations):
+- Auto-tagging walls/doors/rooms
+- Creating dimension chains (standard patterns)
+- Generating sheets from templates
+- Parameter updates (bulk operations)
+- Querying model information
+
+**RAG Code Generation** (20% of operations):
+- Custom geometric analysis
+- Complex conditional logic
+- Integration with external APIs
+- Firm-specific workflows not in standard tool library
+
+**Trade-offs**:
+- **Complexity**: Two code paths to maintain (MCP + RAG)
+- **User experience**: RAG requires code review step (slower workflow)
+- **Reliability**: Generated code may fail at runtime despite LLM confidence
+- **Maintenance**: Revit API docs must be kept up-to-date in vector DB
+
+**Alternatives Considered**:
+1. **MCP-only**: Limited to predefined tools, can't handle edge cases
+2. **RAG-only**: Too risky for production use, LLMs hallucinate API methods
+3. **Prompt library**: User maintains scripts, AI helps write them
+   - Rejected: Puts burden on user, defeats purpose of natural language interface
+
+**Research Evidence**:
+- RevitGeminiRAG demonstrated feasibility but noted as "still rough"
+- BIMCoder academic paper achieved 80% accuracy with structured approach
+- Commercial products (ArchiLabs, BIMLOGIQ) use code-generation but proprietary implementations
+
+**Future Work**:
+- Implement "promotion path": Frequently used RAG-generated code → hardened MCP tool
+- Add telemetry: Track which operations use MCP vs. RAG, optimize tool coverage
+- Multi-turn refinement: If generated code fails, let user provide feedback for retry
+
+**Status**: Accepted (Pending Implementation in Epic 2 or Epic 3)
+
+**Research Citation**: Task 2 gap analysis: "RAG + MCP hybrid approach - Nobody has combined both approaches for 'best of both worlds'"
+
+---
+
+### ADR-011: Multi-Provider LLM Support (Cloud + Local)
+
+**Decision**: Support multiple LLM providers via abstraction layer: Claude (cloud), OpenAI (cloud), and Ollama/LM Studio (local)
+
+**Context**:
+Research findings (Task 2: PyRevit+LLM Integration Analysis, 2025-11-20) identified critical market gap: "All current solutions require cloud APIs (OpenAI, Anthropic, Google). Privacy-sensitive firms can't use these due to data concerns. Local LLM support with Ollama/LM Studio would address this gap."
+
+User interviews (Studio Tema case study, Task 3) emphasized data privacy concerns in AEC industry where project files contain proprietary building designs and client information.
+
+**Rationale**:
+- **Privacy**: Local LLMs process data on-premises (no internet required)
+- **Cost**: Eliminate per-request API fees for high-volume users
+- **Compliance**: Meets data residency requirements for government/military projects
+- **Reliability**: Works offline or in network-restricted environments
+- **Competitive advantage**: Research shows no other Revit AI tool offers local LLM support
+- **Flexibility**: Users choose provider based on their constraints (cost vs. quality vs. privacy)
+
+**Implementation Strategy**:
+```csharp
+// Provider abstraction
+public interface ILLMProvider {
+    Task<string> ParsePromptAsync(string prompt, Dictionary<string, object> context);
+    Task<string> GenerateCodeAsync(string intent, string docs);
+    string GetModelName();
+    bool IsAvailable();
+}
+
+// Concrete implementations
+public class ClaudeProvider : ILLMProvider {
+    private AnthropicClient _client;
+    // Use Anthropic SDK (existing Epic 1 implementation)
+}
+
+public class OpenAIProvider : ILLMProvider {
+    private OpenAIClient _client;
+    // Use OpenAI SDK for GPT-4 compatibility
+}
+
+public class OllamaProvider : ILLMProvider {
+    private HttpClient _client; // Local HTTP API
+
+    public async Task<string> ParsePromptAsync(string prompt, Dictionary<string, object> context) {
+        // Call localhost:11434/api/generate
+        var response = await _client.PostAsync("http://localhost:11434/api/generate",
+            new { model = "llama3.1:8b", prompt = prompt });
+        return response.Content.ReadAsStringAsync();
+    }
+
+    public bool IsAvailable() {
+        // Check if Ollama server is running
+        try {
+            var ping = _client.GetAsync("http://localhost:11434").Result;
+            return ping.IsSuccessStatusCode;
+        } catch {
+            return false;
+        }
+    }
+}
+```
+
+**Provider Selection Logic**:
+```csharp
+public class LLMServiceFactory {
+    public ILLMProvider CreateProvider(UserSettings settings) {
+        // Priority: User preference > Auto-detect > Claude fallback
+
+        if (settings.PreferredProvider == "claude" && HasClaudeApiKey()) {
+            return new ClaudeProvider(settings.ClaudeApiKey);
+        }
+
+        if (settings.PreferredProvider == "local") {
+            if (OllamaProvider.IsAvailable()) {
+                return new OllamaProvider();
+            }
+            // Fallback to cloud if local unavailable
+            ShowWarning("Ollama not detected, falling back to Claude");
+        }
+
+        // Default to Claude
+        return new ClaudeProvider(settings.ClaudeApiKey);
+    }
+}
+```
+
+**Recommended Local Models**:
+| Model | Size | Speed | Quality | Use Case |
+|-------|------|-------|---------|----------|
+| `llama3.1:8b` | 4.7GB | Fast | Good | Command parsing, simple operations |
+| `qwen2.5-coder:7b` | 4.7GB | Fast | Excellent for code | RAG code generation |
+| `deepseek-coder:6.7b` | 3.8GB | Very Fast | Good | Quick queries, auto-complete |
+| `codellama:13b` | 7.3GB | Medium | Excellent | Complex code generation (high-end machines) |
+
+**Settings UI** (Settings Dialog):
+```
+┌─ LLM Provider Settings ─────────────────────────────┐
+│                                                       │
+│ Select Provider:                                      │
+│  ○ Claude (cloud) - Best quality, requires API key   │
+│  ○ OpenAI (cloud) - GPT-4, requires API key          │
+│  ● Ollama (local) - Private, free, offline ✓         │
+│                                                       │
+│ Local Model: [qwen2.5-coder:7b ▼]                   │
+│                                                       │
+│ Status: ✓ Ollama detected (localhost:11434)          │
+│                                                       │
+│ [Download Ollama] [Test Connection] [Advanced...]    │
+│                                                       │
+└───────────────────────────────────────────────────────┘
+```
+
+**Performance Expectations**:
+| Provider | Latency | Cost | Quality | Privacy |
+|----------|---------|------|---------|---------|
+| Claude Sonnet 4.5 | 2-5s | $3/$15 per 1M tokens | Excellent | Cloud only |
+| GPT-4 Turbo | 3-6s | $10/$30 per 1M tokens | Excellent | Cloud only |
+| Ollama (llama3.1:8b) | 1-3s (local GPU) | Free | Good | 100% local |
+| Ollama (qwen2.5-coder:7b) | 1-2s (local GPU) | Free | Very Good | 100% local |
+
+**Trade-offs**:
+- **Quality gap**: Local models (7B-13B parameters) less accurate than Claude Sonnet 4.5 (175B+ parameters)
+- **Hardware requirements**: Local inference requires:
+  - GPU: NVIDIA RTX 3060+ (12GB VRAM) for 8B models
+  - RAM: 16GB+ system RAM
+  - Storage: 5-10GB per model
+- **Setup complexity**: Users must install Ollama/LM Studio separately
+- **Testing burden**: Must test all operations across 3+ providers
+
+**Graceful Degradation**:
+If local LLM fails (incorrect output format, error, timeout):
+1. Log failure telemetry
+2. Show user-friendly error: "Local model couldn't process this. Switch to Claude?"
+3. Offer one-click provider switch
+4. Don't lose user's prompt (keep in dialog for retry)
+
+**Alternatives Considered**:
+1. **Cloud-only** (current Epic 1 implementation)
+   - Rejected: Excludes privacy-conscious market segment
+2. **Local-only** (no cloud option)
+   - Rejected: Quality too low for complex operations
+3. **Hybrid inference** (local for parsing, cloud for code generation)
+   - Deferred: Adds complexity, evaluate after user feedback
+
+**Research Evidence**:
+- DWD AI Assistant (Autodesk App Store): Only supports OpenAI, user must bring own API key
+- ArchiLabs/BIMLOGIQ: Proprietary cloud only
+- Gap identified: "No solution for team-based AI automation" or local deployment
+
+**Future Work**:
+- **Model fine-tuning**: Train local model on Revit API documentation corpus
+- **Federated learning**: Aggregate firm-specific patterns without sharing data
+- **Edge deployment**: Package pre-configured Ollama instance with RevitAI installer
+
+**Installation Support**:
+Include Ollama setup in documentation:
+```powershell
+# Install Ollama (Windows)
+winget install Ollama.Ollama
+
+# Pull recommended model
+ollama pull qwen2.5-coder:7b
+
+# Verify installation
+ollama list
+```
+
+**Status**: Accepted (Pending Implementation in Epic 2 or Epic 3)
+
+**Research Citation**: Task 2 gap analysis: "Local LLM support for BIM workflows - All current solutions require cloud APIs... Privacy-sensitive firms can't use these due to data concerns."
+
+---
+
 _Generated by BMAD Decision Architecture Workflow v1.3.2_
 _Date: 2025-11-09_
 _For: Doc_
 
 _Updated with ADR-008_
 _Date: 2025-11-15_
+
+_Updated with ADR-009, ADR-010, ADR-011_
+_Date: 2025-11-20_
+_Research-Informed Architecture Decisions_
 
 ---
 

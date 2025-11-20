@@ -49,6 +49,7 @@ workflow_status:
   # Phase 3: Solutioning
   create-architecture: docs/architecture.md
   validate-architecture: optional
+  create-epics-and-stories-final: docs/epics.md
   solutioning-gate-check: required
 
   # Phase 4: Implementation

@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Use standard .NET 8 (not Windows-specific) for cross-platform testing -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+    <PackageReference Include="NUnit.Analyzers" Version="3.9.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Anthropic.SDK" Version="2.0.0" />
+  </ItemGroup>
+
+  <!--
+    LAYER 1.5 INTEGRATION TESTING STRATEGY:
+    Integration tests verify end-to-end flow across multiple components
+    WITHOUT requiring actual Revit API objects. We compile services and
+    models and use mock implementations of Revit-dependent interfaces.
+  -->
+  <ItemGroup>
+    <!-- Models - Pure C#, no dependencies -->
+    <Compile Include="..\..\Models\RevitAction.cs" Link="Models\RevitAction.cs" />
+    <Compile Include="..\..\Models\Domain\*.cs" Link="Models\Domain\%(Filename)%(Extension)" />
+
+    <!-- Services - Business logic -->
+    <Compile Include="..\..\Services\ClaudeService.cs" Link="Services\ClaudeService.cs" />
+    <Compile Include="..\..\Services\SafetyValidator.cs" Link="Services\SafetyValidator.cs" />
+    <Compile Include="..\..\Services\IClaudeService.cs" Link="Services\IClaudeService.cs" />
+    <Compile Include="..\..\Services\IRevitContextBuilder.cs" Link="Services\IRevitContextBuilder.cs" />
+    <Compile Include="..\..\Services\LoggingService.cs" Link="Services\LoggingService.cs" />
+    <Compile Include="..\..\Services\TagPlacementService.cs" Link="Services\TagPlacementService.cs" />
+    <Compile Include="..\..\Services\TagCreationService.cs" Link="Services\TagCreationService.cs" />
+    <Compile Include="..\..\Services\SimpleBoundingBoxCollisionDetector.cs" Link="Services\SimpleBoundingBoxCollisionDetector.cs" />
+    <Compile Include="..\..\Services\CenterOffsetStrategy.cs" Link="Services\CenterOffsetStrategy.cs" />
+
+    <!-- Only include Layer 1 interfaces (no Revit API dependencies) -->
+    <Compile Include="..\..\Services\Interfaces\IPlacementStrategy.cs" Link="Services\Interfaces\IPlacementStrategy.cs" />
+    <Compile Include="..\..\Services\Interfaces\ITagCollisionDetector.cs" Link="Services\Interfaces\ITagCollisionDetector.cs" />
+    <Compile Include="..\..\Services\Interfaces\IRevitDocument.cs" Link="Services\Interfaces\IRevitDocument.cs" />
+    <Compile Include="..\..\Services\Interfaces\ITransaction.cs" Link="Services\Interfaces\ITransaction.cs" />
+
+    <!-- Commands - Note: AutoTagWorkflow uses TagPreviewDialog which we skip in tests -->
+    <Compile Include="..\..\Commands\AutoTagWorkflow.cs" Link="Commands\AutoTagWorkflow.cs" />
+  </ItemGroup>
+
+</Project>

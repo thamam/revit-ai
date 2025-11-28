@@ -71,6 +71,9 @@ desktop.ini
 *.temp
 ~$*
 nul
+tmp/
+temp/
+TO_BE_DELETED/
 
 # C# / .NET
 bin/

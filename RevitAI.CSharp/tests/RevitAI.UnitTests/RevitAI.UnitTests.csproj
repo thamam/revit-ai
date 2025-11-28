@@ -40,11 +40,31 @@
     <Compile Include="..\..\Models\Commands\TargetScope.cs" Link="Commands\TargetScope.cs" />
     <Compile Include="..\..\Models\Commands\DimensionParameters.cs" Link="Commands\DimensionParameters.cs" />
 
+    <!-- Story 2.2: Tag Placement POCOs - Pure C#, no dependencies -->
+    <Compile Include="..\..\Models\Domain\TagPlacement.cs" Link="Domain\TagPlacement.cs" />
+    <Compile Include="..\..\Models\Domain\TagPlacementCandidate.cs" Link="Domain\TagPlacementCandidate.cs" />
+    <Compile Include="..\..\Models\Domain\PlacementResult.cs" Link="Domain\PlacementResult.cs" />
+    <Compile Include="..\..\Models\Domain\ViewType.cs" Link="Domain\ViewType.cs" />
+
     <!-- Pure Business Logic Services - No Revit dependencies -->
     <Compile Include="..\..\Services\DimensionPlanningService.cs" Link="Services\DimensionPlanningService.cs" />
     <Compile Include="..\..\Services\RoomBoundaryAnalyzer.cs" Link="Services\RoomBoundaryAnalyzer.cs" />
     <Compile Include="..\..\Services\DimensionChainPlanner.cs" Link="Services\DimensionChainPlanner.cs" />
     <Compile Include="..\..\Services\LoggingService.cs" Link="Services\LoggingService.cs" />
+    <Compile Include="..\..\Services\SafetyValidator.cs" Link="Services\SafetyValidator.cs" />
+
+    <!-- Story 2.2: Tag Placement Services - Pure C#, no dependencies -->
+    <Compile Include="..\..\Services\Interfaces\IPlacementStrategy.cs" Link="Services\IPlacementStrategy.cs" />
+    <Compile Include="..\..\Services\Interfaces\ITagCollisionDetector.cs" Link="Services\ITagCollisionDetector.cs" />
+    <Compile Include="..\..\Services\CenterOffsetStrategy.cs" Link="Services\CenterOffsetStrategy.cs" />
+    <Compile Include="..\..\Services\SimpleBoundingBoxCollisionDetector.cs" Link="Services\SimpleBoundingBoxCollisionDetector.cs" />
+    <Compile Include="..\..\Services\TagPlacementService.cs" Link="Services\TagPlacementService.cs" />
+
+    <!-- Story 2.3: Tag Creation Layer 2 - Revit API abstraction via interfaces -->
+    <Compile Include="..\..\Models\Domain\OperationResult.cs" Link="Domain\OperationResult.cs" />
+    <Compile Include="..\..\Services\Interfaces\IRevitDocument.cs" Link="Services\IRevitDocument.cs" />
+    <Compile Include="..\..\Services\Interfaces\ITransaction.cs" Link="Services\ITransaction.cs" />
+    <Compile Include="..\..\Services\TagCreationService.cs" Link="Services\TagCreationService.cs" />
 
     <!-- NLU Services - Mockable Claude integration (for Layer 1 testing with mocks) -->
     <Compile Include="..\..\Services\NLU\DimensionCommandParser.cs" Link="NLU\DimensionCommandParser.cs" />
@@ -59,7 +79,6 @@
     These will be run as Layer 2 tests on Windows.
   -->
   <ItemGroup>
-    <Compile Remove="SafetyValidatorTests.cs" />
     <Compile Remove="ClaudeServiceTests.cs" />
     <Compile Remove="Mocks\MockFactory.cs" />
   </ItemGroup>

@@ -1,0 +1,657 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="2-1-auto-tag-parser" epic="2" generated="2025-11-21">
+
+  <!-- ================================================================ -->
+  <!-- STORY SPECIFICATION -->
+  <!-- ================================================================ -->
+
+  <story-spec>
+    <id>2.1</id>
+    <title>Auto-Tagging Command Parser & Safety Validation</title>
+    <status>ready-for-dev</status>
+
+    <user-story>
+      As an architect,
+      I want to auto-tag elements using natural language commands,
+      so that I can save days of manual tagging work while ensuring safe, preview-confirmed operations.
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC1" title="Natural Language Parsing (Hebrew & English)">
+        <given>A Hebrew or English tagging prompt (e.g., "תייג את כל הדלתות בקומה 1", "Tag all walls in current view")</given>
+        <when>The prompt is sent to Claude API with Revit context</when>
+        <then>
+          A structured action is returned with:
+          - Operation type: auto_tag
+          - Target elements: category (Walls/Doors/Rooms), scope (current view, level, selection)
+          - Tag parameters: tag type, placement strategy (leader/no leader), offset
+        </then>
+      </criterion>
+
+      <criterion id="AC2" title="Ambiguity Handling">
+        <given>An ambiguous prompt</given>
+        <when>Clarity is needed</when>
+        <then>
+          Clarifying questions are triggered:
+          - "Which tag type? [Door Tag | Door Number | Custom]"
+          - "Tag all doors or only untagged doors?"
+        </then>
+      </criterion>
+
+      <criterion id="AC3" title="Safety Validation Enforcement">
+        <given>A parsed auto-tag action</given>
+        <when>Validation is performed</when>
+        <then>
+          Safety rules are enforced:
+          - Maximum 500 elements per operation (configurable)
+          - Only "read + annotate" operations allowed (no geometry modification)
+          - Tags are metadata additions (reversible with Ctrl+Z)
+        </then>
+      </criterion>
+
+      <criterion id="AC4" title="Bilingual Support">
+        <given>Hebrew and English prompts</given>
+        <when>Parsed by Claude API</when>
+        <then>Both languages handled equally with >90% accuracy</then>
+      </criterion>
+    </acceptance-criteria>
+
+    <tasks>
+      <task id="T1" acs="AC1,AC2">
+        <title>Enhance Claude System Prompt for Auto-Tagging</title>
+        <subtasks>
+          <subtask>Update system prompt to include auto_tag operation definition</subtask>
+          <subtask>Add Revit context template (available tag types, element counts, untagged counts)</subtask>
+          <subtask>Define JSON response schema for auto_tag actions</subtask>
+          <subtask>Add clarification questions for ambiguous prompts</subtask>
+          <subtask>Test with 20+ Hebrew and English tagging prompts</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T2" acs="AC3">
+        <title>Extend SafetyValidator for Auto-Tag Operations</title>
+        <subtasks>
+          <subtask>Add auto_tag to ALLOWED_OPERATIONS list</subtask>
+          <subtask>Implement ValidateAutoTagOperation method</subtask>
+          <subtask>Check operation allowlist (only auto_tag permitted)</subtask>
+          <subtask>Enforce scope limits (MAX_ELEMENTS_PER_OPERATION = 500)</subtask>
+          <subtask>Validate tag type exists in project</subtask>
+          <subtask>Return ValidationResult (Approved/Rejected with error message)</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T3" acs="AC1">
+        <title>Create RevitContextBuilder for Tag Operations</title>
+        <subtasks>
+          <subtask>Build GetTaggingContext method</subtask>
+          <subtask>Query available tag types from document</subtask>
+          <subtask>Get element counts by category (Doors, Walls, Rooms, etc.)</subtask>
+          <subtask>Calculate untagged element counts</subtask>
+          <subtask>Return structured context dictionary for Claude API</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T4" acs="AC4">
+        <title>Unit Testing for Parsing Logic</title>
+        <subtasks>
+          <subtask>Test Hebrew prompt parsing ("תייג את כל הדלתות בקומה 1")</subtask>
+          <subtask>Test English prompt parsing ("Tag all walls in current view")</subtask>
+          <subtask>Test ambiguous prompt handling (triggers clarifications)</subtask>
+          <subtask>Test invalid operation rejection</subtask>
+          <subtask>Test scope limit validation (>500 elements)</subtask>
+          <subtask>Achieve >90% test coverage for parsing and validation</subtask>
+        </subtasks>
+      </task>
+
+      <task id="T5" acs="AC1,AC3">
+        <title>Integration Testing with Mocked Revit API</title>
+        <subtasks>
+          <subtask>Create MockRevitDocument with sample elements</subtask>
+          <subtask>Test end-to-end: prompt → parse → validate → context</subtask>
+          <subtask>Verify safety validator blocks disallowed operations</subtask>
+          <subtask>Verify tag type validation catches missing types</subtask>
+          <subtask>Test partial scope (only untagged elements)</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story-spec>
+
+  <!-- ================================================================ -->
+  <!-- EPIC CONTEXT -->
+  <!-- ================================================================ -->
+
+  <epic-context>
+    <epic-id>2</epic-id>
+    <epic-title>Intelligent Automation (Refactored - Research-Informed)</epic-title>
+    <epic-goal>
+      Enable architects to automate tedious Revit tasks through natural language commands,
+      prioritizing high-value, low-risk operations that demonstrate the complete
+      User→LLM→MCP→Revit flow.
+    </epic-goal>
+
+    <strategic-rationale>
+      Research findings (Task 2: PyRevit+LLM Integration Analysis) identified that
+      commercial products and user interviews prioritize **annotation tasks** (tagging,
+      parameters) over **geometric tasks** (dimensions, walls). Auto-tagging emerged as
+      the #1 pain point: "Users spend days manually tagging wall types and door numbers."
+
+      Task 3 (Testing Strategies Research) emphasizes "Read-Only/Annotation" tasks have
+      lower blast radius than geometric modifications. Starting with tagging reduces risk
+      while building user trust.
+    </strategic-rationale>
+
+    <epic-structure>
+      <phase id="stories-2.1-2.3" priority="HIGH">
+        Auto-Tagging Implementation (High Value, Low Risk) - NEW PRIORITY
+      </phase>
+      <phase id="stories-2.4-2.6" priority="DEFERRED">
+        Dimension Automation (Medium Value, Medium Risk) - DEFERRED FROM ORIGINAL
+      </phase>
+      <phase id="story-2.7" priority="STRATEGIC">
+        MCP Compatibility Layer - STRATEGIC ENABLER
+      </phase>
+    </epic-structure>
+
+    <research-attribution>
+      <report id="task-1" date="2025-11-20">
+        MCP Server Landscape Analysis - Identified MCP as emerging standard,
+        operations inventory shows auto-tagging as #1 priority
+      </report>
+      <report id="task-2" date="2025-11-20">
+        PyRevit+LLM Integration Analysis - Market validation: 3 commercial products
+        prioritize tagging, user pain points identified
+      </report>
+      <report id="task-3" date="2025-11-20">
+        Testing Strategies Research - SIL architecture recommended,
+        annotation tasks have lower blast radius
+      </report>
+    </research-attribution>
+  </epic-context>
+
+  <!-- ================================================================ -->
+  <!-- ARCHITECTURE CONTEXT -->
+  <!-- ================================================================ -->
+
+  <architecture-context>
+    <technology-stack>
+      <framework>C# Revit SDK (.NET 8.0)</framework>
+      <language>C# with async/await</language>
+      <llm-sdk>Anthropic SDK 2.0.0</llm-sdk>
+      <model>Claude Sonnet 4.5</model>
+      <threading>ExternalEvent Pattern (thread-safe Revit API access)</threading>
+    </technology-stack>
+
+    <adr-references>
+      <adr id="ADR-001" title="Use C# SDK Instead of PyRevit">
+        <rationale>
+          PyRevit stability issues (1+ hours debugging with no success), C# worked immediately,
+          official Revit API support, better async/await for LLM calls, production-grade robustness
+        </rationale>
+        <impact>All code in RevitAI.CSharp/ using .NET 8.0, not pyRevit framework</impact>
+      </adr>
+
+      <adr id="ADR-002" title="Claude Sonnet 4 for NLU">
+        <rationale>
+          Excellent Hebrew support, structured JSON output, speed/cost balance
+        </rationale>
+        <impact>Use Claude Sonnet 4.5 for prompt parsing in ClaudeService.cs</impact>
+      </adr>
+
+      <adr id="ADR-003" title="ExternalEvent Pattern for Threading">
+        <rationale>
+          Revit API requirement (main thread only), allows non-blocking LLM calls,
+          prevents "accessing Revit API from wrong thread" errors
+        </rationale>
+        <impact>
+          Claude API calls on background thread via async/await,
+          Revit API queries via ExternalEvent + TaskCompletionSource
+        </impact>
+      </adr>
+
+      <adr id="ADR-007" title="Operation Allowlist for Safety">
+        <rationale>
+          Prevents AI from performing destructive operations, limits blast radius
+        </rationale>
+        <impact>
+          SafetyValidator enforces ALLOWED_OPERATIONS list:
+          - ✅ auto_tag (this story)
+          - ✅ read_elements
+          - ❌ delete_elements, modify_geometry (blocked)
+        </impact>
+      </adr>
+
+      <adr id="ADR-009" title="Modal Dialog Blocking Pattern for ExternalEvent">
+        <rationale>
+          WPF ShowDialog() blocks Revit's main thread event loop, preventing
+          ExternalEvent Execute() callbacks from being invoked
+        </rationale>
+        <impact>
+          Close modal dialogs BEFORE awaiting ExternalEvent responses.
+          Use Revit's TaskDialog for results display after async operations.
+        </impact>
+      </adr>
+    </adr-references>
+
+    <project-structure>
+      <path type="service">RevitAI.CSharp/Services/ClaudeService.cs</path>
+      <path type="service">RevitAI.CSharp/Services/SafetyValidator.cs</path>
+      <path type="service">RevitAI.CSharp/Services/RevitContextBuilder.cs</path>
+      <path type="model">RevitAI.CSharp/Models/RevitAction.cs</path>
+      <path type="model">RevitAI.CSharp/Models/ValidationResult.cs</path>
+      <path type="test">RevitAI.Tests/Unit/ClaudeServiceTests.cs</path>
+      <path type="test">RevitAI.Tests/Unit/SafetyValidatorTests.cs</path>
+      <path type="test">RevitAI.Tests/Integration/AutoTagWorkflowTests.cs</path>
+    </project-structure>
+
+    <coding-standards>
+      <naming>
+        <classes>PascalCase (ClaudeService, SafetyValidator)</classes>
+        <methods>PascalCase (ParsePromptAsync, ValidateAutoTagOperation)</methods>
+        <private-fields>_camelCase (_apiKey, _maxElements)</private-fields>
+        <constants>UPPER_SNAKE_CASE (MAX_ELEMENTS_PER_OPERATION)</constants>
+      </naming>
+
+      <error-handling>
+        <exceptions>
+          ApiException (Claude API failures),
+          ValidationException (Safety validation failures),
+          RevitApiException (Revit API operation failures)
+        </exceptions>
+        <logging>logger.Error("message", "CONTEXT", exception)</logging>
+        <user-messages>Hebrew support via Messages.Get(key, language)</user-messages>
+      </error-handling>
+    </coding-standards>
+  </architecture-context>
+
+  <!-- ================================================================ -->
+  <!-- EPIC 1 FOUNDATION (Prerequisites) -->
+  <!-- ================================================================ -->
+
+  <epic1-foundation status="COMPLETE">
+    <story id="1.1" title="Project Scaffold & UI">
+      <files-created>
+        <file>RevitAI.CSharp/Application.cs</file>
+        <file>RevitAI.CSharp/Commands/CopilotCommand.cs</file>
+        <file>RevitAI.CSharp/UI/CopilotDialog.xaml</file>
+        <file>RevitAI.CSharp/RevitAI.addin</file>
+      </files-created>
+      <capabilities>Ribbon button, WPF dialog, basic UI scaffold</capabilities>
+    </story>
+
+    <story id="1.2" title="Claude API Integration">
+      <files-created>
+        <file>RevitAI.CSharp/Services/ClaudeService.cs</file>
+      </files-created>
+      <capabilities>
+        ParsePromptAsync method, Anthropic SDK 2.0.0 integration,
+        system prompt construction, JSON response parsing
+      </capabilities>
+      <interfaces>
+        <method>Task&lt;RevitAction&gt; ParsePromptAsync(string prompt, Dictionary&lt;string, object&gt; context)</method>
+      </interfaces>
+    </story>
+
+    <story id="1.4" title="Safety Validation Framework">
+      <files-created>
+        <file>RevitAI.CSharp/Services/SafetyValidator.cs</file>
+        <file>RevitAI.CSharp/Models/ValidationResult.cs</file>
+      </files-created>
+      <capabilities>
+        Operation allowlist enforcement, scope limit validation,
+        ValidationResult model with Approved/Rejected states
+      </capabilities>
+      <interfaces>
+        <method>ValidationResult ValidateOperation(RevitAction action)</method>
+        <constant>MAX_ELEMENTS_PER_OPERATION = 500</constant>
+        <constant>ALLOWED_OPERATIONS = { "read_elements" }</constant>
+      </interfaces>
+    </story>
+
+    <story id="1.3" title="ExternalEvent Pattern">
+      <files-created>
+        <file>RevitAI.CSharp/Services/RevitEventHandler.cs</file>
+      </files-created>
+      <capabilities>
+        Thread-safe Revit API access via IExternalEventHandler,
+        Background thread for async Claude API calls,
+        TaskCompletionSource for async-to-sync bridging
+      </capabilities>
+      <interfaces>
+        <method>Task&lt;RevitResponse&gt; ExecuteAsync(RevitRequest request)</method>
+      </interfaces>
+    </story>
+
+    <story id="1.7" title="Configuration System">
+      <configuration>
+        <api-key source="environment-variable">CLAUDE_API_KEY</api-key>
+        <settings file="future">%APPDATA%/RevitAI/settings.yaml (planned)</settings>
+      </configuration>
+      <capabilities>Environment variable API key loading</capabilities>
+    </story>
+  </epic1-foundation>
+
+  <!-- ================================================================ -->
+  <!-- TESTING STRATEGY (SIL Architecture) -->
+  <!-- ================================================================ -->
+
+  <testing-strategy framework="SIL">
+    <layer id="1" name="Pure Business Logic" coverage="80%">
+      <description>
+        Fast unit tests (milliseconds) with no Revit API dependencies.
+        Mock all external dependencies (Claude API, Revit collections).
+      </description>
+      <tests>
+        <test>ClaudeService.ParsePromptAsync with mocked API responses</test>
+        <test>SafetyValidator.ValidateAutoTagOperation pure logic</test>
+        <test>RevitContextBuilder data transformations with mocked Revit elements</test>
+      </tests>
+      <tools>NUnit, Moq for mocking</tools>
+    </layer>
+
+    <layer id="2" name="Revit API Integration" coverage="15%">
+      <description>
+        Integration tests with mocked Revit API (MockRevitDocument, MockFilteredElementCollector).
+        Test multi-component flows without actual Revit running.
+      </description>
+      <tests>
+        <test>RevitContextBuilder with mocked Revit API calls</test>
+        <test>End-to-end: prompt → parse → validate → context assembly</test>
+      </tests>
+      <tools>NUnit, custom Revit API mocks</tools>
+    </layer>
+
+    <layer id="3" name="End-to-End Acceptance" coverage="5%">
+      <description>
+        Manual testing in Revit with real projects.
+        Run weekly or before releases.
+      </description>
+      <tests>
+        <test>Test with Hebrew prompts in real Revit project</test>
+        <test>Test safety validator with >500 element scenarios</test>
+        <test>Verify error messages display correctly in Hebrew</test>
+      </tests>
+      <tools>Manual testing in Revit 2026</tools>
+    </layer>
+  </testing-strategy>
+
+  <!-- ================================================================ -->
+  <!-- PRD REQUIREMENTS CONTEXT -->
+  <!-- ================================================================ -->
+
+  <prd-context>
+    <requirement id="F2.1" title="Element Selection">
+      <description>
+        System SHALL accept prompts like: "Tag all doors on this floor"
+        System SHALL support element types: doors, windows, rooms, walls, equipment
+        System SHALL filter by category, type, level, or current view
+        System SHALL respect user selection if elements are pre-selected
+      </description>
+      <acceptance>
+        Parser correctly identifies element category from natural language,
+        scope is derived from context (current view, level name, "selected")
+      </acceptance>
+    </requirement>
+
+    <requirement id="F2.2" title="Tag Placement">
+      <description>
+        System SHALL position tags using intelligent placement algorithm:
+        - Doors: offset to hinge side, avoid overlap with dimension
+        - Windows: centered above or below, avoid dimension conflicts
+        - Rooms: centered in room geometry
+        System SHALL use firm's default tag family for each element type
+        System SHALL avoid overlapping tags (collision detection)
+      </description>
+      <scope-for-story>
+        This story (2.1) handles PARSING only.
+        Tag placement implemented in Story 2.2.
+      </scope-for-story>
+    </requirement>
+
+    <requirement id="NFR-R1" title="Data Safety">
+      <description>
+        System SHALL NEVER corrupt Revit project files
+        System SHALL wrap all operations in Revit Transactions (atomic commit/rollback)
+        System SHALL validate all API calls before execution
+        System SHALL implement allowlist of safe operations
+      </description>
+      <impact>
+        SafetyValidator enforces operation allowlist BEFORE any Revit API calls.
+        This story adds auto_tag to allowlist, validates scope limits.
+      </impact>
+    </requirement>
+
+    <requirement id="NFR-L1" title="Hebrew Support">
+      <description>
+        System SHALL accept Hebrew text input (RTL)
+        System SHALL display Hebrew feedback messages
+        System SHALL handle Hebrew tokenization efficiently (Claude's Unicode support)
+      </description>
+      <impact>
+        ClaudeService system prompt supports both Hebrew and English prompts.
+        Test suite includes Hebrew test cases.
+      </impact>
+    </requirement>
+  </prd-context>
+
+  <!-- ================================================================ -->
+  <!-- IMPLEMENTATION GUIDANCE -->
+  <!-- ================================================================ -->
+
+  <implementation-guidance>
+    <critical-paths>
+      <path id="CP1" priority="HIGH">
+        <title>System Prompt Enhancement</title>
+        <steps>
+          <step>Update ClaudeService.cs system prompt template</step>
+          <step>Add auto_tag operation definition to prompt</step>
+          <step>Define JSON response schema in prompt</step>
+          <step>Add Revit context template (tag types, element counts)</step>
+          <step>Test with sample Hebrew/English prompts</step>
+        </steps>
+        <files-modified>
+          <file>RevitAI.CSharp/Services/ClaudeService.cs</file>
+        </files-modified>
+      </path>
+
+      <path id="CP2" priority="HIGH">
+        <title>Safety Validator Extension</title>
+        <steps>
+          <step>Add "auto_tag" to ALLOWED_OPERATIONS array in SafetyValidator.cs</step>
+          <step>Create ValidateAutoTagOperation method</step>
+          <step>Check operation against allowlist</step>
+          <step>Enforce MAX_ELEMENTS_PER_OPERATION limit</step>
+          <step>Validate tag type exists in project (requires Revit API query)</step>
+          <step>Return ValidationResult.Approved() or ValidationResult.Rejected(message)</step>
+        </steps>
+        <files-modified>
+          <file>RevitAI.CSharp/Services/SafetyValidator.cs</file>
+        </files-modified>
+      </path>
+
+      <path id="CP3" priority="MEDIUM">
+        <title>Revit Context Builder (New Service)</title>
+        <steps>
+          <step>Create new file: RevitAI.CSharp/Services/RevitContextBuilder.cs</step>
+          <step>Implement GetTaggingContext method</step>
+          <step>Query available TagTypes from document using FilteredElementCollector</step>
+          <step>Count elements by category (Doors, Walls, Rooms, etc.)</step>
+          <step>Calculate untagged element counts (elements without IndependentTag)</step>
+          <step>Return Dictionary&lt;string, object&gt; for Claude API context</step>
+        </steps>
+        <files-created>
+          <file>RevitAI.CSharp/Services/RevitContextBuilder.cs</file>
+        </files-created>
+        <threading-note>
+          Revit API queries (FilteredElementCollector) must run on main thread via ExternalEvent.
+          Call RevitEventHandler.ExecuteAsync(GetContextRequest) from ClaudeService.
+        </threading-note>
+      </path>
+    </critical-paths>
+
+    <edge-cases>
+      <case id="EC1" title="No Tag Types in Project">
+        <scenario>User opens blank Revit project with no tag families loaded</scenario>
+        <expected-behavior>
+          RevitContextBuilder returns empty tag_types array,
+          SafetyValidator rejects operation with error:
+          "No tag types found in project. Please load tag families."
+        </expected-behavior>
+      </case>
+
+      <case id="EC2" title="Ambiguous Category">
+        <scenario>User prompt: "Tag everything in Level 1"</scenario>
+        <expected-behavior>
+          Claude API returns clarifications array:
+          ["Which element types to tag? [Doors | Walls | Rooms | All]"]
+          UI displays clarification dialog for user to select
+        </expected-behavior>
+      </case>
+
+      <case id="EC3" title="Scope Exceeds Limit">
+        <scenario>User prompt: "Tag all walls" in project with 1200 walls</scenario>
+        <expected-behavior>
+          SafetyValidator rejects with error:
+          "Too many elements (1200). Maximum: 500. Try narrowing scope to a specific level or view."
+        </expected-behavior>
+      </case>
+
+      <case id="EC4" title="Hebrew RTL Rendering">
+        <scenario>Hebrew error messages in WPF dialog</scenario>
+        <expected-behavior>
+          TextBlock FlowDirection set to RightToLeft for Hebrew text.
+          Error messages use Messages.Get(key, "he") for translation.
+        </expected-behavior>
+      </case>
+    </edge-cases>
+
+    <no-transaction-required>
+      This story implements PARSING and VALIDATION only.
+      No Revit modifications occur in this story.
+      Tag creation (which requires Transaction) happens in Story 2.3.
+    </no-transaction-required>
+  </implementation-guidance>
+
+  <!-- ================================================================ -->
+  <!-- EXISTING CODE CONTEXT (Epic 1 Services) -->
+  <!-- ================================================================ -->
+
+  <existing-code-snippets>
+    <snippet file="Services/ClaudeService.cs" location="lines 45-80">
+      <description>Existing ParsePromptAsync method from Epic 1</description>
+      <code language="csharp"><![CDATA[
+public async Task<RevitAction> ParsePromptAsync(string prompt, Dictionary<string, object> context)
+{
+    var systemPrompt = BuildSystemPrompt(context);
+
+    var message = await _client.Messages.CreateAsync(new MessageRequest
+    {
+        Model = "claude-sonnet-4-5-20250929",
+        MaxTokens = 1024,
+        Messages = new List<Message>
+        {
+            new Message
+            {
+                Role = "user",
+                Content = systemPrompt + "\n\n" + prompt
+            }
+        }
+    });
+
+    var responseText = message.Content.FirstOrDefault()?.Text ?? "";
+    return ParseJsonResponse(responseText);
+}
+
+private string BuildSystemPrompt(Dictionary<string, object> context)
+{
+    // Current Epic 1 implementation - needs enhancement for auto_tag
+    return @"
+You are RevitAI, an AI assistant for Autodesk Revit automation.
+AVAILABLE OPERATIONS: read_elements
+Return JSON: { ""operation"": ""read_elements"", ""targets"": {...}, ""parameters"": {...} }
+    ";
+}
+      ]]></code>
+      <modification-needed>
+        Enhance BuildSystemPrompt to include:
+        - auto_tag operation definition
+        - Context template for tag types and element counts
+        - JSON schema for auto_tag actions
+        - Clarification question examples
+      </modification-needed>
+    </snippet>
+
+    <snippet file="Services/SafetyValidator.cs" location="lines 12-35">
+      <description>Existing ValidateOperation method from Epic 1</description>
+      <code language="csharp"><![CDATA[
+private static readonly string[] ALLOWED_OPERATIONS = { "read_elements" };
+private const int MAX_ELEMENTS_PER_OPERATION = 500;
+
+public ValidationResult ValidateOperation(RevitAction action)
+{
+    // Check allowlist
+    if (!ALLOWED_OPERATIONS.Contains(action.Operation))
+    {
+        return ValidationResult.Rejected(
+            $"Operation '{action.Operation}' not allowed"
+        );
+    }
+
+    // Check scope limits
+    if (action.Targets.TryGetValue("element_count", out var count))
+    {
+        if ((int)count > MAX_ELEMENTS_PER_OPERATION)
+        {
+            return ValidationResult.Rejected(
+                $"Too many elements ({count}). Maximum: {MAX_ELEMENTS_PER_OPERATION}"
+            );
+        }
+    }
+
+    return ValidationResult.Approved();
+}
+      ]]></code>
+      <modification-needed>
+        1. Add "auto_tag" to ALLOWED_OPERATIONS array
+        2. Create ValidateAutoTagOperation method
+        3. Check tag type exists in project (requires Revit API query)
+      </modification-needed>
+    </snippet>
+  </existing-code-snippets>
+
+  <!-- ================================================================ -->
+  <!-- DEFINITION OF DONE -->
+  <!-- ================================================================ -->
+
+  <definition-of-done>
+    <checklist>
+      <item>✓ ClaudeService system prompt enhanced with auto_tag operation</item>
+      <item>✓ SafetyValidator allows auto_tag operation and validates scope</item>
+      <item>✓ RevitContextBuilder created and queries tag types + element counts</item>
+      <item>✓ Unit tests pass (&gt;90% coverage for parsing and validation logic)</item>
+      <item>✓ Integration tests pass with mocked Revit API</item>
+      <item>✓ Hebrew prompt parsing tested and working</item>
+      <item>✓ English prompt parsing tested and working</item>
+      <item>✓ Ambiguous prompt handling triggers clarifications</item>
+      <item>✓ Scope limit validation rejects &gt;500 element operations</item>
+      <item>✓ Code reviewed and follows C# coding standards</item>
+      <item>✓ No P0 bugs (crashes, exceptions)</item>
+      <item>✓ Documentation updated (CLAUDE.md, inline comments)</item>
+    </checklist>
+  </definition-of-done>
+
+  <!-- ================================================================ -->
+  <!-- METADATA -->
+  <!-- ================================================================ -->
+
+  <metadata>
+    <generated-by>PM Agent (John) via story-context workflow</generated-by>
+    <generated-date>2025-11-21</generated-date>
+    <workflow-version>bmad/bmm/workflows/4-implementation/story-context v1.0</workflow-version>
+    <context-file-path>docs/sprint-artifacts/contexts/story-2-1-context.xml</context-file-path>
+    <story-file-path>docs/stories/2-1-auto-tag-parser.md</story-file-path>
+    <epic-file-path>docs/epic2-refactored.md</epic-file-path>
+    <architecture-file-path>docs/architecture.md</architecture-file-path>
+    <prd-file-path>docs/PRD.md</prd-file-path>
+  </metadata>
+
+</story-context>

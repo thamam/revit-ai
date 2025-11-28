@@ -4,7 +4,8 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:developer.dynamobim.org)",
-      "WebFetch(domain:docs.nunit.org)"
+      "WebFetch(domain:docs.nunit.org)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

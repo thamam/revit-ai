@@ -45,10 +45,11 @@ namespace RevitAI.UI
             _statusTextBlock = new TextBlock
             {
                 Text = "RevitAI Copilot - C# SDK Implementation\n\n" +
-                       "Epic 1: Foundation & Core Infrastructure ✓\n\n" +
+                       "Epic 1: Foundation & Core Infrastructure ✓\n" +
+                       "Epic 2 Phase 1: Auto-Tagging ✓\n\n" +
                        "This is the C# SDK version of RevitAI.\n" +
                        "Built with Revit's official .NET API for maximum stability.\n\n" +
-                       "Status: Ready for Epic 2 implementation",
+                       "Status: Auto-tagging feature ready! Enter a natural language command above.",
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 10)
             };
@@ -62,8 +63,8 @@ namespace RevitAI.UI
                 AcceptsReturn = true,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Margin = new Thickness(0, 0, 0, 10),
-                IsEnabled = false,  // Disabled until Epic 2
-                Text = "Natural language commands will go here...\n(Epic 2 feature)"
+                IsEnabled = true,  // ENABLED - Epic 2 Phase 1 Complete!
+                Text = "Enter natural language command...\nExample: Tag all doors in Level 1"
             };
             Grid.SetRow(_promptTextBox, 1);
 
@@ -73,6 +74,15 @@ namespace RevitAI.UI
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right
             };
+
+            Button submitButton = new Button
+            {
+                Content = "Submit",
+                Width = 100,
+                Height = 30,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
+            submitButton.Click += SubmitButton_Click;
 
             Button testApiButton = new Button
             {
@@ -118,6 +128,7 @@ namespace RevitAI.UI
             };
             closeButton.Click += (s, e) => Close();
 
+            buttonPanel.Children.Add(submitButton);
             buttonPanel.Children.Add(testApiButton);
             buttonPanel.Children.Add(testEventButton);
             buttonPanel.Children.Add(testPreviewButton);
@@ -132,6 +143,82 @@ namespace RevitAI.UI
 
             // Set content
             Content = mainGrid;
+        }
+
+        private async void SubmitButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Get user prompt
+                string userPrompt = _promptTextBox.Text?.Trim();
+                if (string.IsNullOrWhiteSpace(userPrompt) || userPrompt.Contains("Example:"))
+                {
+                    TaskDialog.Show("RevitAI", "Please enter a command in the text box.\n\nExample: Tag all doors in Level 1");
+                    return;
+                }
+
+                _statusTextBlock.Text = $"Processing: {userPrompt}\n\nPlease wait...";
+
+                // Get API key
+                string apiKey = Environment.GetEnvironmentVariable("CLAUDE_API_KEY");
+                if (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    TaskDialog.Show("API Key Missing",
+                        "Please set CLAUDE_API_KEY environment variable.\n\n" +
+                        "Get your API key from: https://console.anthropic.com/");
+                    _statusTextBlock.Text = "API key not configured.";
+                    return;
+                }
+
+                // Initialize services
+                var claudeService = new Services.ClaudeService(apiKey);
+                var validator = new Services.SafetyValidator();
+                var contextBuilder = new Services.RevitContextBuilder();
+                var placementService = new Services.TagPlacementService();
+                var creationService = new Services.TagCreationService(
+                    new Services.RevitDocumentWrapper(_uiDoc.Document));
+                var logger = Services.LoggingService.Instance;
+
+                // Create workflow
+                var workflow = new Commands.AutoTagWorkflow(
+                    claudeService,
+                    validator,
+                    contextBuilder,
+                    placementService,
+                    creationService,
+                    logger
+                );
+
+                // Wrap Revit Document and Transaction
+                var document = new Services.RevitDocumentWrapper(_uiDoc.Document);
+                var transaction = new Services.TransactionWrapper(_uiDoc.Document, "AI Auto-Tagging");
+
+                // Execute workflow
+                var result = await workflow.ExecuteAsync(userPrompt, document, transaction);
+
+                // Display result
+                if (result.IsSuccess)
+                {
+                    _statusTextBlock.Text = $"✓ SUCCESS!\n\n{result.Message}\n\n" +
+                        $"Created: {result.CreatedCount} tags\n" +
+                        $"Failed: {result.FailedCount} tags\n\n" +
+                        "Operation completed successfully.";
+
+                    TaskDialog.Show("RevitAI - Success", result.Message);
+                }
+                else
+                {
+                    _statusTextBlock.Text = $"✗ FAILED\n\n{result.Message}\n\n" +
+                        "No changes were made to the document.";
+
+                    TaskDialog.Show("RevitAI - Failed", result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                TaskDialog.Show("Error", $"Auto-tagging failed:\n{ex.Message}\n\n{ex.StackTrace}");
+                _statusTextBlock.Text = $"Error: {ex.Message}\n\n{ex.StackTrace}";
+            }
         }
 
         private async void TestApiButton_Click(object sender, RoutedEventArgs e)
